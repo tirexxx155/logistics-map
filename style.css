@@ -1,0 +1,251 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+}
+
+*, *::before, *::after {
+    box-sizing: inherit;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    padding: 10px 20px 5px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 20px;
+}
+
+header p {
+    margin: 5px 0 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.filters label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.filters input,
+.filters select {
+    padding: 3px 6px;
+    font-size: 14px;
+}
+
+.filters button {
+    padding: 4px 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.add-order {
+    margin-top: 5px;
+    padding-top: 8px;
+    border-top: 1px dashed #ccc;
+    font-size: 13px;
+}
+
+.add-order h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.add-order label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.add-order input,
+.add-order select {
+    padding: 3px 6px;
+    font-size: 13px;
+    min-width: 140px;
+}
+
+.add-order button[type="submit"] {
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.coords {
+    display: flex;
+    gap: 5px;
+}
+
+#latInput,
+#lonInput {
+    width: 110px;
+}
+
+.hint {
+    margin: 3px 0 0;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Основной лейаут */
+#layout {
+    display: flex;
+    flex: 1;
+    min-height: 400px;
+}
+
+#sidebar {
+    width: 34%;
+    max-width: 480px;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+    overflow-y: auto;
+    background: #fafafa;
+}
+
+#sidebar h2 {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+
+/* Таблица заявок */
+#ordersTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+#ordersTable th,
+#ordersTable td {
+    border: 1px solid #ddd;
+    padding: 4px 6px;
+    text-align: left;
+    vertical-align: top;
+}
+
+#ordersTable th {
+    background: #eee;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+#ordersTable tbody tr {
+    cursor: pointer;
+}
+
+#ordersTable tbody tr:hover {
+    background: #e6f3ff;
+}
+
+/* Карта */
+#map {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Скрытый элемент */
+.hidden {
+    display: none !important;
+}
+
+/* Кнопки сворачивания и выгрузки */
+.panel-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.panel-toggles button {
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* Кнопки в таблице */
+.delete-btn,
+.edit-btn {
+    padding: 2px 6px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+/* Модальное окно */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+    position: relative;
+    background: #fff;
+    padding: 15px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    max-width: 500px;
+    width: 90%;
+    z-index: 1001;
+    font-size: 14px;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.modal-content .form-row {
+    margin-bottom: 8px;
+}
+
+.modal-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.modal-actions button {
+    padding: 4px 10px;
+    font-size: 13px;
+    cursor: pointer;
+}
