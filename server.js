@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
@@ -15,6 +16,10 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/logist
 // ==== Миддлвары ====
 app.use(cors());
 app.use(express.json());
+// Отдаём статические файлы (index.html, main.js, style.css, картинки)
+// __dirname — это папка, где лежит server.js (и твой фронт)
+app.use(express.static(__dirname));
+
 
 // ==== Подключение к MongoDB ====
 mongoose.connect(MONGODB_URI, {
@@ -39,8 +44,9 @@ const Order = mongoose.model('Order', orderSchema);
 
 // ==== Проверка, что сервер жив ====
 app.get('/', (req, res) => {
-    res.send('API работает. Попробуй GET /api/orders');
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
+
 
 // ==== API: получить все заявки ====
 app.get('/api/orders', async (req, res) => {

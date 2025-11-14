@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Карта заявок</title>
+    <title>Elephant Logistics — карта заявок</title>
 
     <!-- Стили Leaflet -->
     <link
@@ -14,37 +14,60 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Карта заявок</h1>
-        <p>Прототип: точки с грузами и тарифами</p>
+    <!-- ШАПКА ПРИЛОЖЕНИЯ -->
+    <header class="app-header">
+        <div class="header-top">
+        
+            <div class="brand">
+                <img src="elephant-logo.png" alt="Elephant Logistics" class="brand-logo">
+                <div class="brand-info">
+                    <div class="brand-name">elephant</div>
+                    <div class="brand-subtitle">trucks &amp; grain</div>
+                </div>
+            </div>
 
-        <div class="filters">
-            <label>
-                Груз:
-                <select id="cargoFilter">
-                    <option value="">Все</option>
-                    <option value="Кукуруза">Кукуруза</option>
-                    <option value="Пшеница">Пшеница</option>
-                    <option value="Подсолнечник">Подсолнечник</option>
-                </select>
-            </label>
+            <div class="header-meta">
+                <div class="app-title">Карта заявок</div>
+                <div class="app-caption">Онлайн-карта заявок компании Elephant Logistics</div>
+            </div>
+        </div>
+            <div class="header-stats">
+        <div class="stat-item">
+            Всего заявок: <span id="totalOrders">0</span>
+        </div>
+    </div>
 
-            <label>
-                Мин. цена, ₽/т:
-                <input type="number" id="minPrice" placeholder="0">
-            </label>
 
-            <button id="applyFilter">Применить фильтр</button>
-            <button id="resetFilter">Сбросить</button>
+        <div class="header-section">
+            <div class="filters">
+                <label>
+                    Груз:
+                    <select id="cargoFilter">
+                        <option value="">Все</option>
+                        <option value="Кукуруза">Кукуруза</option>
+                        <option value="Пшеница">Пшеница</option>
+                        <option value="Подсолнечник">Подсолнечник</option>
+                    </select>
+                </label>
 
-            <div class="panel-toggles">
-                <button id="toggleSidebar">Свернуть список заявок</button>
-                <button id="toggleForm">Свернуть форму</button>
-                <button id="downloadCsvBtn">Скачать для Excel (CSV)</button>
+                <label>
+                    Мин. цена, ₽/т:
+                    <input type="number" id="minPrice" placeholder="0">
+                </label>
+
+                <button id="applyFilter" class="btn btn-primary">Применить фильтр</button>
+                <button id="resetFilter" class="btn btn-ghost">Сбросить</button>
+
+                <div class="panel-toggles">
+                    <button id="toggleSidebar" class="btn btn-ghost small">Свернуть список заявок</button>
+                    <button id="toggleForm" class="btn btn-ghost small">Свернуть форму</button>
+                    <button id="downloadCsvBtn" class="btn btn-ghost small">Скачать для Excel (CSV)</button>
+                </div>
             </div>
         </div>
 
-        <div class="add-order">
+        <!-- Блок добавления заявки (JS опирается на класс .add-order) -->
+        <div class="header-section add-order">
             <h2>Добавить заявку</h2>
             <form id="addOrderForm">
                 <div class="form-row">
@@ -78,19 +101,20 @@
                     </label>
                     <label>
                         Координаты (клик по карте):
-                            <div class="coords">
-                                <input type="text" id="latInput" placeholder="Широта" readonly>
-                                <input type="text" id="lonInput" placeholder="Долгота" readonly>
-                            </div>
+                        <div class="coords">
+                            <input type="text" id="latInput" placeholder="Широта" readonly>
+                            <input type="text" id="lonInput" placeholder="Долгота" readonly>
+                        </div>
                     </label>
                 </div>
 
-                <button type="submit">Добавить на карту</button>
+                <button type="submit" class="btn btn-primary">Добавить на карту</button>
             </form>
             <p class="hint">Кликните по карте, чтобы подставить координаты точки.</p>
         </div>
     </header>
 
+    <!-- ОСНОВНОЙ ЛЕЙАУТ: СЛЕВА СПИСОК, СПРАВА КАРТА -->
     <div id="layout">
         <aside id="sidebar">
             <h2>Список заявок</h2>
@@ -113,8 +137,18 @@
 
         <div id="map"></div>
     </div>
-
-    <!-- Модальное окно редактирования -->
+ <!-- ФУТЕР ПРИЛОЖЕНИЯ -->
+    <footer class="app-footer">
+        <div class="footer-left">
+            © Elephant Logistics · trucks &amp; grain
+        </div>
+        <div class="footer-right">
+            <span>internal tool</span>
+            <span class="dot">•</span>
+            <span>elephant-logistics.com</span>
+        </div>
+    </footer>
+    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ -->
     <div id="editModal" class="modal hidden">
         <div class="modal-backdrop"></div>
         <div class="modal-content">
@@ -152,8 +186,8 @@
                     </label>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" id="editCancelBtn">Отмена</button>
-                    <button type="submit">Сохранить</button>
+                    <button type="button" id="editCancelBtn" class="btn btn-ghost">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
                 </div>
             </form>
         </div>
