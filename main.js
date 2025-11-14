@@ -298,6 +298,8 @@ async function onAddOrderSubmit(e) {
     };
 
     try {
+        console.log('Отправляем новую заявку на сервер:', newOrder);
+
         const res = await fetch(`${API_BASE}/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -305,10 +307,16 @@ async function onAddOrderSubmit(e) {
         });
 
         if (!res.ok) {
-            throw new Error('Failed to create order');
+            const errorText = await res.text(); // читаем текст ошибки с сервера
+            console.error('Ответ сервера при создании заявки:', res.status, errorText);
+            throw new Error(errorText || `Failed to create order, status ${res.status}`);
         }
 
-        // очищаем форму (кроме, например, координат — как тебе удобнее)
+        // Если нужно, можно прочитать созданную заявку:
+        // const created = await res.json();
+        // console.log('Созданная заявка с сервера:', created);
+
+        // очищаем форму
         fromInput.value = '';
         toInput.value = '';
         cargoInput.value = '';
@@ -319,10 +327,11 @@ async function onAddOrderSubmit(e) {
 
         await loadOrders();
     } catch (err) {
-        console.error(err);
-        alert('Не удалось добавить заявку.');
+        console.error('Ошибка при добавлении заявки:', err);
+        alert('Не удалось добавить заявку. Детали ошибки смотрите в консоли (F12 → Console).');
     }
 }
+
 
 
 // ======================= УДАЛЕНИЕ ЗАЯВКИ =======================
