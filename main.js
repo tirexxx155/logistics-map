@@ -27,11 +27,17 @@ let tempLoadMarker = null;
 let tempUnloadMarker = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  initMap();
-  setupUi();
-  restoreAdminFromStorage();
-  loadOrders();
+    // наша текущая Leaflet-карта
+    initMap();
+    setupUi();
+    loadOrders();
+
+    // если скрипт Яндекса загрузился — ждём готовности инициализации
+    if (window.ymaps) {
+        ymaps.ready(initYandexMap);
+    }
 });
+
 
 
 // ======================= АДМИН-АВТОРИЗАЦИЯ =======================
@@ -780,4 +786,29 @@ function downloadCsv(orders) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+// ======================= ЯНДЕКС-КАРТА (первый тест) =======================
+
+let yaMap; // объект карты Яндекс
+
+function initYandexMap() {
+    // Создаём карту в контейнере #yamap
+    yaMap = new ymaps.Map('yamap', {
+        center: [48.7, 44.5], // центр карты (пока такой же, как у Leaflet)
+        zoom: 6,
+        controls: ['zoomControl', 'typeSelector']
+    });
+
+    // Тестовая метка, чтобы убедиться, что всё работает
+    const placemark = new ymaps.Placemark(
+        [48.7, 44.5],
+        {
+            balloonContent: 'Яндекс-карта подключена ✅'
+        },
+        {
+            preset: 'islands#blueCircleDotIcon'
+        }
+    );
+
+    yaMap.geoObjects.add(placemark);
 }
