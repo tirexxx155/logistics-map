@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <title>Elephant Logistics — карта заявок</title>
 
-    <!-- Стили Leaflet -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-
     <!-- Наши стили -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -17,7 +11,6 @@
     <!-- ШАПКА ПРИЛОЖЕНИЯ -->
     <header class="app-header">
         <div class="header-top">
-        
             <div class="brand">
                 <img src="elephant-logo.png" alt="Elephant Logistics" class="brand-logo">
                 <div class="brand-info">
@@ -30,13 +23,16 @@
                 <div class="app-title">Карта заявок</div>
                 <div class="app-caption">Онлайн-карта заявок компании Elephant Logistics</div>
             </div>
-        </div>
-            <div class="header-stats">
-        <div class="stat-item">
-            Всего заявок: <span id="totalOrders">0</span>
-        </div>
-    </div>
 
+            <div class="header-stats">
+                <div class="stat-item">
+                    Всего заявок: <span id="totalOrders">0</span>
+                </div>
+                <button id="adminLoginBtn" class="btn btn-ghost small">
+                    Войти как админ
+                </button>
+            </div>
+        </div>
 
         <div class="header-section">
             <div class="filters">
@@ -66,17 +62,17 @@
             </div>
         </div>
 
-        <!-- Блок добавления заявки (JS опирается на класс .add-order) -->
+        <!-- ДОБАВЛЕНИЕ ЗАЯВКИ -->
         <div class="header-section add-order">
             <h2>Добавить заявку</h2>
             <form id="addOrderForm">
                 <div class="form-row">
                     <label>
-                        Откуда:
+                        Загрузка:
                         <input type="text" id="fromInput" required>
                     </label>
                     <label>
-                        Куда:
+                        Выгрузка:
                         <input type="text" id="toInput" required>
                     </label>
                     <label>
@@ -99,18 +95,33 @@
                         Расстояние, км:
                         <input type="number" id="distanceInput">
                     </label>
+                </div>
+
+                <div class="form-row">
                     <label>
-                        Координаты (клик по карте):
+                        Координаты загрузки (клик по карте):
                         <div class="coords">
                             <input type="text" id="latInput" placeholder="Широта" readonly>
                             <input type="text" id="lonInput" placeholder="Долгота" readonly>
+                        </div>
+                    </label>
+
+                    <!-- пока заполняются руками, позже можем сделать второй клик на карту -->
+                    <label>
+                        Координаты выгрузки (введите вручную):
+                        <div class="coords">
+                            <input type="text" id="unloadLatInput" placeholder="Широта">
+                            <input type="text" id="unloadLonInput" placeholder="Долгота">
                         </div>
                     </label>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Добавить на карту</button>
             </form>
-            <p class="hint">Кликните по карте, чтобы подставить координаты точки.</p>
+            <p class="hint">
+                Кликните по карте, чтобы подставить координаты точки загрузки.
+                Координаты выгрузки пока вводятся вручную.
+            </p>
         </div>
     </header>
 
@@ -124,8 +135,8 @@
                         <th>ID</th>
                         <th>Груз</th>
                         <th>Цена, ₽/т</th>
-                        <th>Откуда</th>
-                        <th>Куда</th>
+                        <th>Загрузка</th>
+                        <th>Выгрузка</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
@@ -135,11 +146,11 @@
             </table>
         </aside>
 
+        <!-- ОДИН контейнер для карты (Яндекс) -->
         <div id="map"></div>
-        <div id="yamap" style="width: 100%; height: 400px; margin-top: 20px;"></div>
-
     </div>
- <!-- ФУТЕР ПРИЛОЖЕНИЯ -->
+
+    <!-- ФУТЕР -->
     <footer class="app-footer">
         <div class="footer-left">
             © Elephant Logistics · trucks &amp; grain
@@ -150,6 +161,7 @@
             <span>elephant-logistics.com</span>
         </div>
     </footer>
+
     <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ -->
     <div id="editModal" class="modal hidden">
         <div class="modal-backdrop"></div>
@@ -158,11 +170,11 @@
             <form id="editOrderForm">
                 <div class="form-row">
                     <label>
-                        Откуда:
+                        Загрузка:
                         <input type="text" id="editFromInput" required>
                     </label>
                     <label>
-                        Куда:
+                        Выгрузка:
                         <input type="text" id="editToInput" required>
                     </label>
                 </div>
@@ -194,13 +206,13 @@
             </form>
         </div>
     </div>
- 
-    <!-- Скрипт Leaflet -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script
-        src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=62753f37-5d60-4eb1-a984-4c93875e6942"
-        type="text/javascript">
+
+    <!-- Яндекс.Карты -->
+    <script
+      src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=62753f37-5d60-4eb1-a984-4c93875e6942"
+      type="text/javascript">
     </script>
+
     <!-- Наш JS -->
     <script src="main.js"></script>
 </body>
