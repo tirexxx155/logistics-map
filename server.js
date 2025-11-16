@@ -1,8 +1,14 @@
+// server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
+
+// если локально будешь использовать .env – это не мешает на Render
+try {
+  require('dotenv').config();
+} catch (_) {}
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -42,23 +48,31 @@ const orderSchema = new mongoose.Schema(
 const Order = mongoose.model('Order', orderSchema);
 
 // ------------ ПРОСТАЯ АДМИН-АВТОРИЗАЦИЯ ------------
+
 // Пароль берём из переменной окружения ADMIN_PASSWORD
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+// (на Render у тебя стоит elephant2025)
+const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || 'admin123').trim();
+
+// просто лог для проверки, что видит сервер
+console.log('🔐 ADMIN_PASSWORD on server =', JSON.stringify(ADMIN_PASSWORD));
 
 // токен = sha256(пароля) — чтобы в браузере не светить сам пароль
 function getAdminToken() {
-  return crypto
-    .createHash('sha256')
-    .update(ADMIN_PASSWORD)
-    .digest('hex');
+  return crypto.createHash('sha256').update(ADMIN_PASSWORD).digest('hex');
 }
 
-// Вход: POST /api/login { password }
-app.post('/api/login', (req, res) => {
-  const { password } = req.body || {};
+// Вход: POST /api/login ИЛИ /api/admin/login  { password }
+app.post(['/api/login', '/api/admin/login'], (req, res) => {
+  const password = (req.body && req.body.password
+    ? String(req.body.password).trim()
+    : '');
+
+  console.log('💬 Login attempt, got password =', JSON.stringify(password));
 
   if (!password || password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ message: 'Неверный пароль администратора' });
+    return res
+      .status(401)
+      .json({ message: 'Неверный пароль администратора' });
   }
 
   const token = getAdminToken();
@@ -81,6 +95,7 @@ function requireAdmin(req, res, next) {
 }
 
 // ------------ API -------------
+
 // GET /api/orders — доступен всем (и обычным пользователям тоже)
 app.get('/api/orders', async (req, res) => {
   try {
