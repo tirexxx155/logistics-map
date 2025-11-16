@@ -34,23 +34,29 @@ mongoose
 // ------------ МОДЕЛЬ ЗАЯВКИ ------------
 const orderSchema = new mongoose.Schema(
   {
-    from: String,
-    to: String,
+    from: String,        // текст "Загрузка"
+    to: String,          // текст "Выгрузка"
     cargo: String,
     pricePerTon: Number,
     distanceKm: Number,
+
+    // Координаты точки ЗАГРУЗКИ (как раньше)
     lat: Number,
     lon: Number,
+
+    // Новые поля: координаты ВЫГРУЗКИ
+    unloadLat: Number,
+    unloadLon: Number,
   },
   { timestamps: true }
 );
+
 
 const Order = mongoose.model('Order', orderSchema);
 
 // ------------ ПРОСТАЯ АДМИН-АВТОРИЗАЦИЯ ------------
 
-// Пароль берём из переменной окружения ADMIN_PASSWORD
-// (на Render у тебя стоит elephant2025)
+
 const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || 'admin123').trim();
 
 // просто лог для проверки, что видит сервер
