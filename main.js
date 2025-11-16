@@ -417,6 +417,14 @@ function renderMarkers(orders) {
     `;
 
     marker.bindPopup(popupHtml);
+
+    // 👉 Новое: при клике по маркеру рисуем маршрут этой заявки
+    marker.on('click', () => {
+      drawOrderRoute(order);        // дуга
+      // можно чуть приблизить:
+      // map.setView([order.lat, order.lon], 7);
+    });
+
     marker.addTo(markersLayer);
   });
 }
