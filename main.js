@@ -1,6 +1,7 @@
 // Базовый адрес API (Node-сервер)
 const API_BASE =
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  (window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1')
     ? 'http://localhost:5050/api'
     : '/api';
 
@@ -12,11 +13,109 @@ let filteredOrders = []; // заявки после фильтра
 
 let editingOrderId = null; // id заявки, которую редактируем
 
+// роли
+let isAdmin = false;
+let adminToken = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   setupUi();
+  restoreAdminFromStorage();
   loadOrders();
 });
+
+
+// ======================= ВСПОМОГАТЕЛЬНОЕ ДЛЯ АДМИНА =======================
+
+function getAuthHeaders(extra = {}) {
+  const headers = { ...extra };
+  if (adminToken) {
+    headers['Authorization'] = `Bearer ${adminToken}`;
+  }
+  return headers;
+}
+
+function restoreAdminFromStorage() {
+  const token = localStorage.getItem('adminToken');
+  if (!token) return;
+  adminToken = token;
+  isAdmin = true;
+  updateAdminUi();
+}
+
+function updateAdminUi() {
+  // секция "Добавить заявку"
+  const addOrderSection = document.querySelector('.add-order');
+  if (addOrderSection) {
+    if (isAdmin) {
+      addOrderSection.classList.remove('hidden');
+    } else {
+      addOrderSection.classList.add('hidden');
+    }
+  }
+
+  // кнопка "Свернуть форму" — только для админа
+  const toggleFormBtn = document.getElementById('toggleForm');
+  if (toggleFormBtn) {
+    toggleFormBtn.style.display = isAdmin ? '' : 'none';
+  }
+
+  // текст заголовка колонки "Действия"
+  const tbody = document.querySelector('#ordersTable tbody');
+  const thead = document.querySelector('#ordersTable thead');
+  if (thead) {
+    const lastTh = thead.querySelector('tr th:last-child');
+    if (lastTh) {
+      lastTh.textContent = isAdmin ? 'Действия' : '';
+    }
+  }
+
+  // сама кнопка входа/выхода
+  const adminBtn = document.getElementById('adminLoginBtn');
+  if (adminBtn) {
+    adminBtn.textContent = isAdmin ? 'Выйти (админ)' : 'Войти как админ';
+  }
+
+  refreshMapSize();
+}
+
+async function onAdminButtonClick() {
+  // если уже админ — делаем выход
+  if (isAdmin) {
+    adminToken = null;
+    isAdmin = false;
+    localStorage.removeItem('adminToken');
+    updateAdminUi();
+    alert('Вы вышли из режима администратора.');
+    return;
+  }
+
+  const password = prompt('Введите пароль администратора:');
+  if (!password) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+
+    if (!res.ok) {
+      alert('Неверный пароль.');
+      return;
+    }
+
+    const data = await res.json();
+    adminToken = data.token;
+    isAdmin = true;
+    localStorage.setItem('adminToken', adminToken);
+    updateAdminUi();
+    alert('Вы вошли как администратор.');
+  } catch (err) {
+    console.error(err);
+    alert('Ошибка при входе.');
+  }
+}
 
 
 // ======================= ИНИЦИАЛИЗАЦИЯ КАРТЫ =======================
@@ -40,6 +139,8 @@ function initMap() {
     latInput.value = e.latlng.lat.toFixed(6);
     lonInput.value = e.latlng.lng.toFixed(6);
   });
+
+  setTimeout(() => map.invalidateSize(), 300);
 }
 
 
@@ -47,7 +148,6 @@ function initMap() {
 
 function refreshMapSize() {
   if (!map) return;
-  // Даем браузеру чуть времени применить классы hidden
   setTimeout(() => {
     map.invalidateSize();
   }, 200);
@@ -86,13 +186,11 @@ function setupUi() {
     toggleSidebarBtn.addEventListener('click', () => {
       const sidebar = document.getElementById('sidebar');
       if (!sidebar) return;
-
       sidebar.classList.toggle('hidden');
       toggleSidebarBtn.textContent = sidebar.classList.contains('hidden')
         ? 'Показать список заявок'
         : 'Свернуть список заявок';
 
-      // после изменения ширины области — обновить карту
       refreshMapSize();
     });
   }
@@ -101,13 +199,11 @@ function setupUi() {
     toggleFormBtn.addEventListener('click', () => {
       const addOrderSection = document.querySelector('.add-order');
       if (!addOrderSection) return;
-
       addOrderSection.classList.toggle('hidden');
       toggleFormBtn.textContent = addOrderSection.classList.contains('hidden')
         ? 'Показать форму'
         : 'Свернуть форму';
 
-      // форма сверху поменяла высоту — обновим карту
       refreshMapSize();
     });
   }
@@ -132,6 +228,25 @@ function setupUi() {
   if (editCancelBtn) {
     editCancelBtn.addEventListener('click', closeEditModal);
   }
+
+  // создаём кнопку "Войти как админ" в шапке
+  setupAdminButton();
+
+  // по умолчанию — обычный пользователь, без прав админа
+  updateAdminUi();
+}
+
+function setupAdminButton() {
+  const stats = document.querySelector('.header-stats');
+  if (!stats) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'adminLoginBtn';
+  btn.className = 'btn btn-ghost small';
+  btn.textContent = isAdmin ? 'Выйти (админ)' : 'Войти как админ';
+  btn.addEventListener('click', onAdminButtonClick);
+
+  stats.appendChild(btn);
 }
 
 
@@ -140,6 +255,7 @@ function setupUi() {
 async function loadOrders() {
   try {
     const res = await fetch(`${API_BASE}/orders`);
+
     if (!res.ok) {
       throw new Error('Server error: ' + res.status);
     }
@@ -214,25 +330,29 @@ function renderOrdersTable(orders) {
     tdFrom.textContent  = order.from || '';
     tdTo.textContent    = order.to || '';
 
-    // Кнопки "Редактировать" и "Удалить"
-    const editBtn = document.createElement('button');
-    editBtn.textContent = 'Редактировать';
-    editBtn.className = 'edit-btn';
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openEditModal(order);
-    });
+    if (isAdmin) {
+      // Кнопки "Редактировать" и "Удалить" только для админа
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Редактировать';
+      editBtn.className = 'edit-btn';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditModal(order);
+      });
 
-    const delBtn = document.createElement('button');
-    delBtn.textContent = 'Удалить';
-    delBtn.className = 'delete-btn';
-    delBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteOrder(order._id);
-    });
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Удалить';
+      delBtn.className = 'delete-btn';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteOrder(order._id);
+      });
 
-    tdAct.appendChild(editBtn);
-    tdAct.appendChild(delBtn);
+      tdAct.appendChild(editBtn);
+      tdAct.appendChild(delBtn);
+    } else {
+      tdAct.textContent = '—';
+    }
 
     tr.appendChild(tdId);
     tr.appendChild(tdCargo);
@@ -280,6 +400,11 @@ function renderMarkers(orders) {
 async function onAddOrderSubmit(e) {
   e.preventDefault();
 
+  if (!isAdmin) {
+    alert('Добавлять заявки может только администратор.');
+    return;
+  }
+
   const fromInput      = document.getElementById('fromInput');
   const toInput        = document.getElementById('toInput');
   const cargoInput     = document.getElementById('cargoInput');
@@ -319,9 +444,14 @@ async function onAddOrderSubmit(e) {
   try {
     const res = await fetch(`${API_BASE}/orders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(newOrder)
     });
+
+    if (res.status === 401) {
+      alert('Нет прав на добавление (нужен админ).');
+      return;
+    }
 
     if (!res.ok) {
       throw new Error('Failed to create order');
@@ -347,14 +477,23 @@ async function onAddOrderSubmit(e) {
 // ======================= УДАЛЕНИЕ ЗАЯВКИ =======================
 
 async function deleteOrder(id) {
+  if (!isAdmin) {
+    alert('Удалять заявки может только администратор.');
+    return;
+  }
   if (!id) return;
   const ok = confirm('Удалить заявку?');
   if (!ok) return;
 
   try {
     const res = await fetch(`${API_BASE}/orders/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
+    if (res.status === 401) {
+      alert('Нет прав на удаление (нужен админ).');
+      return;
+    }
     if (!res.ok) {
       throw new Error('Failed to delete');
     }
@@ -397,6 +536,11 @@ async function onEditOrderSubmit(e) {
   e.preventDefault();
   if (!editingOrderId) return;
 
+  if (!isAdmin) {
+    alert('Редактировать заявки может только администратор.');
+    return;
+  }
+
   const fromInput     = document.getElementById('editFromInput');
   const toInput       = document.getElementById('editToInput');
   const cargoInput    = document.getElementById('editCargoInput');
@@ -425,9 +569,13 @@ async function onEditOrderSubmit(e) {
   try {
     const res = await fetch(`${API_BASE}/orders/${editingOrderId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(updated)
     });
+    if (res.status === 401) {
+      alert('Нет прав на редактирование (нужен админ).');
+      return;
+    }
     if (!res.ok) {
       throw new Error('Failed to update');
     }

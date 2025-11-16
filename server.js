@@ -2,105 +2,152 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
-
-// Render сам задаёт PORT через переменную среды
 const PORT = process.env.PORT || 5050;
 
-// --- middleware ---
+// ------------ БАЗОВЫЕ MIDDLEWARE ------------
 app.use(cors());
 app.use(express.json());
 
-// отдаём статические файлы: index.html, main.js, style.css, картинки
+// статика: index.html, main.js, style.css и т.д.
 app.use(express.static(__dirname));
 
-// --- подключение к MongoDB ---
-// Локально можно использовать mongodb://127.0.0.1:27017/logistics_map
-// На Render берётся строка из MONGODB_URI
+// ------------ ПОДКЛЮЧЕНИЕ К MONGODB ------------
 const mongoUri =
   process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/logistics_map';
 
 mongoose
-  .connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+  .connect(mongoUri)
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err);
+  });
 
-// --- схема и модель ЗАЯВОК ---
-// Без обязательных (required) полей, чтобы ничего не валилось на валидации
+// ------------ МОДЕЛЬ ЗАЯВКИ ------------
 const orderSchema = new mongoose.Schema(
   {
-    lat: Number,
-    lon: Number,
     from: String,
     to: String,
     cargo: String,
     pricePerTon: Number,
     distanceKm: Number,
+    lat: Number,
+    lon: Number,
   },
   { timestamps: true }
 );
 
 const Order = mongoose.model('Order', orderSchema);
 
-// --- API ---
-// Получить все заявки
+// ------------ ПРОСТАЯ АДМИН-АВТОРИЗАЦИЯ ------------
+// Пароль берём из переменной окружения ADMIN_PASSWORD
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+// токен = sha256(пароля) — чтобы в браузере не светить сам пароль
+function getAdminToken() {
+  return crypto
+    .createHash('sha256')
+    .update(ADMIN_PASSWORD)
+    .digest('hex');
+}
+
+// Вход: POST /api/login { password }
+app.post('/api/login', (req, res) => {
+  const { password } = req.body || {};
+
+  if (!password || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ message: 'Неверный пароль администратора' });
+  }
+
+  const token = getAdminToken();
+  return res.json({ token });
+});
+
+// middleware: проверка, что запрос пришёл от админа
+function requireAdmin(req, res, next) {
+  const authHeader =
+    req.headers['authorization'] || req.headers['Authorization'] || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  if (!token || token !== getAdminToken()) {
+    return res
+      .status(401)
+      .json({ message: 'Только администратор может изменять заявки' });
+  }
+
+  next();
+}
+
+// ------------ API -------------
+// GET /api/orders — доступен всем (и обычным пользователям тоже)
 app.get('/api/orders', async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     console.error('GET /api/orders error:', err);
-    res.status(500).json({ error: 'Server error while loading orders' });
+    res.status(500).json({ message: 'Ошибка сервера при получении заявок' });
   }
 });
 
-// Создать заявку
-app.post('/api/orders', async (req, res) => {
+// POST /api/orders — только админ
+app.post('/api/orders', requireAdmin, async (req, res) => {
   try {
-    console.log('POST /api/orders body:', req.body);
     const order = new Order(req.body);
-    await order.save();
-    res.status(201).json(order);
+    const saved = await order.save();
+    res.status(201).json(saved);
   } catch (err) {
     console.error('POST /api/orders error:', err);
-    res.status(500).json({ error: 'Server error while creating order' });
+    res
+      .status(500)
+      .json({ message: 'Ошибка сервера при создании заявки' });
   }
 });
 
-// Обновить заявку
-app.put('/api/orders/:id', async (req, res) => {
+// PUT /api/orders/:id — только админ
+app.put('/api/orders/:id', requireAdmin, async (req, res) => {
   try {
-    const order = await Order.findByIdAndUpdate(req.params.id, req.body, {
+    const { id } = req.params;
+    const updated = await Order.findByIdAndUpdate(id, req.body, {
       new: true,
     });
-    res.json(order);
+    if (!updated) {
+      return res.status(404).json({ message: 'Заявка не найдена' });
+    }
+    res.json(updated);
   } catch (err) {
     console.error('PUT /api/orders error:', err);
-    res.status(500).json({ error: 'Server error while updating order' });
+    res
+      .status(500)
+      .json({ message: 'Ошибка сервера при обновлении заявки' });
   }
 });
 
-// Удалить заявку
-app.delete('/api/orders/:id', async (req, res) => {
+// DELETE /api/orders/:id — только админ
+app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
   try {
-    await Order.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
+    const { id } = req.params;
+    const deleted = await Order.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Заявка не найдена' });
+    }
+    res.json({ ok: true });
   } catch (err) {
     console.error('DELETE /api/orders error:', err);
-    res.status(500).json({ error: 'Server error while deleting order' });
+    res
+      .status(500)
+      .json({ message: 'Ошибка сервера при удалении заявки' });
   }
 });
 
-// Отдаём главную страницу с картой
+// главная страница
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Запуск сервера
+// ------------ ЗАПУСК СЕРВЕРА ------------
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
