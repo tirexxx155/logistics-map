@@ -26,13 +26,17 @@ let currentUnloadPoint = null; // { lat, lon } — точка ВЫГРУЗКИ
 let tempLoadMarker = null;
 let tempUnloadMarker = null;
 
+// Яндекс
+let yaMap;            // объект карты Яндекс
+let yaMarkers = [];   // маркеры заявок на Яндекс-карте
+let yaRouteLine = null; // текущий маршрут (дуга)
+
+
 document.addEventListener('DOMContentLoaded', () => {
-    // наша текущая Leaflet-карта
-    initMap();
+    initMap();      // Leaflet (если ещё используем)
     setupUi();
     loadOrders();
 
-    // если скрипт Яндекса загрузился — ждём готовности инициализации
     if (window.ymaps) {
         ymaps.ready(initYandexMap);
     }
@@ -407,19 +411,113 @@ function renderOrdersTable(orders) {
 }
 
 function renderMarkers(orders) {
-  if (!markersLayer) return;
-  markersLayer.clearLayers();
+    // ---------- Leaflet (как было) ----------
+    if (!markersLayer) return;
+    markersLayer.clearLayers();
 
-  orders.forEach(order => {
-    if (order.lat == null || order.lon == null) return;
-    const marker = L.marker([order.lat, order.lon]);
+    const tbody = document.querySelector('#ordersTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
 
-    const popupHtml = `
-      <b>${order.cargo || 'Груз'}</b><br>
-      Загрузка: ${order.from || '-'}<br>
-      Выгрузка: ${order.to || '-'}<br>
-      Цена: ${order.pricePerTon != null ? order.pricePerTon + ' ₽/т' : '-'}<br>
-      Расстояние: ${order.distanceKm != null ? order.distanceKm + ' км' : '-'}
+    orders.forEach((order, index) => {
+        // таблица
+        const tr = document.createElement('tr');
+
+        const tdId    = document.createElement('td');
+        const tdCargo = document.createElement('td');
+        const tdPrice = document.createElement('td');
+        const tdFrom  = document.createElement('td');
+        const tdTo    = document.createElement('td');
+        const tdAct   = document.createElement('td');
+
+        tdId.textContent    = index + 1;
+        tdCargo.textContent = order.cargo || '';
+        tdPrice.textContent = order.pricePerTon != null ? order.pricePerTon : '';
+        tdFrom.textContent  = order.from || '';
+        tdTo.textContent    = order.to || '';
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Редактировать';
+        editBtn.className = 'edit-btn';
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openEditModal(order);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Удалить';
+        delBtn.className = 'delete-btn';
+        delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteOrder(order._id);
+        });
+
+        tdAct.appendChild(editBtn);
+        tdAct.appendChild(delBtn);
+
+        tr.appendChild(tdId);
+        tr.appendChild(tdCargo);
+        tr.appendChild(tdPrice);
+        tr.appendChild(tdFrom);
+        tr.appendChild(tdTo);
+        tr.appendChild(tdAct);
+
+        // клик по строке: центрируем карту и рисуем маршрут
+        tr.addEventListener('click', () => {
+            if (order.lat != null && order.lon != null && yaMap) {
+                yaMap.setCenter([order.lat, order.lon], 7, { duration: 200 });
+            }
+            drawOrderRouteYandex(order);
+        });
+
+        tbody.appendChild(tr);
+
+        // ---------- Leaflet маркеры (если ещё нужна старая карта) ----------
+        if (order.lat != null && order.lon != null) {
+            const marker = L.marker([order.lat, order.lon]);
+            const popupHtml = `
+                <b>${order.cargo || 'Груз'}</b><br>
+                Загрузка: ${order.from || '-'}<br>
+                Выгрузка: ${order.to || '-'}<br>
+                Цена: ${order.pricePerTon != null ? order.pricePerTon + ' ₽/т' : '-'}<br>
+                Расстояние: ${order.distanceKm != null ? order.distanceKm + ' км' : '-'}
+            `;
+            marker.bindPopup(popupHtml);
+            marker.addTo(markersLayer);
+        }
+    });
+
+    // ---------- Яндекс-маркеры ----------
+    clearYandexMapObjects();
+
+    if (yaMap) {
+        orders.forEach((order) => {
+            if (order.lat == null || order.lon == null) return;
+
+            const balloonHtml = `
+                <b>${order.cargo || 'Груз'}</b><br/>
+                Загрузка: ${order.from || '-'}<br/>
+                Выгрузка: ${order.to || '-'}<br/>
+                Цена: ${order.pricePerTon != null ? order.pricePerTon + ' ₽/т' : '-'}<br/>
+                Расстояние: ${order.distanceKm != null ? order.distanceKm + ' км' : '-'}
+            `;
+
+            const placemark = new ymaps.Placemark(
+                [order.lat, order.lon],
+                { balloonContent: balloonHtml },
+                { preset: 'islands#blueIcon' }
+            );
+
+            placemark.events.add('click', () => {
+                drawOrderRouteYandex(order);
+            });
+
+            yaMap.geoObjects.add(placemark);
+            yaMarkers.push(placemark);
+        });
+    }
+}
+
     `;
 
     marker.bindPopup(popupHtml);
@@ -624,6 +722,19 @@ async function onAddOrderSubmit(e) {
   }
 }
 
+function clearYandexMapObjects() {
+    if (yaMap) {
+        // убираем старые маркеры
+        yaMarkers.forEach(m => yaMap.geoObjects.remove(m));
+        yaMarkers = [];
+
+        // убираем старый маршрут
+        if (yaRouteLine) {
+            yaMap.geoObjects.remove(yaRouteLine);
+            yaRouteLine = null;
+        }
+    }
+}
 
 // ======================= УДАЛЕНИЕ ЗАЯВКИ =======================
 
@@ -792,23 +903,18 @@ function downloadCsv(orders) {
 let yaMap; // объект карты Яндекс
 
 function initYandexMap() {
-    // Создаём карту в контейнере #yamap
     yaMap = new ymaps.Map('yamap', {
-        center: [48.7, 44.5], // центр карты (пока такой же, как у Leaflet)
+        center: [48.7, 44.5], // стартовый центр
         zoom: 6,
         controls: ['zoomControl', 'typeSelector']
     });
 
-    // Тестовая метка, чтобы убедиться, что всё работает
+    // Можно убрать тестовую точку, но оставлю как пример
     const placemark = new ymaps.Placemark(
         [48.7, 44.5],
-        {
-            balloonContent: 'Яндекс-карта подключена ✅'
-        },
-        {
-            preset: 'islands#blueCircleDotIcon'
-        }
+        { balloonContent: 'Яндекс-карта подключена ✅' },
+        { preset: 'islands#blueCircleDotIcon' }
     );
-
     yaMap.geoObjects.add(placemark);
 }
+
