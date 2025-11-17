@@ -2,7 +2,7 @@
 const API_BASE =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
-    ? "https://logistics-map.onrender.com/api"
+    ? "http://localhost:5050/api"
     : "/api";
 
 let map;                 // ymaps.Map
