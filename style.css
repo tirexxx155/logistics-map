@@ -121,7 +121,8 @@ body {
 .header-meta {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;   /* центрируем по горизонтали внутри блока */
+    text-align: center;    /* текст по центру */
     gap: 2px;
 }
 
@@ -336,11 +337,19 @@ body {
     background: #fecaca;
 }
 
-/* КАРТА */
+/* КАРТА — ОСНОВНОЕ */
 
 #map {
     flex: 1;
     min-width: 0;
+    height: 100%;           /* ← добавили высоту */
+}
+
+/* ДОПОЛНИТЕЛЬНО ДЛЯ ЯНДЕКС-КАРТ, ЧТОБЫ ВНУТРЕННИЙ DIV ТЯНУЛСЯ НА 100% */
+#map > ymaps,
+#map .ymaps-2-1-79-map {
+    width: 100% !important;
+    height: 100% !important;
 }
 
 /* СКРЫТЫЙ ЭЛЕМЕНТ */
@@ -420,6 +429,7 @@ body {
         box-shadow: inset 0 -1px 0 rgba(229, 231, 235, 0.7);
     }
 }
+
 /* СТАТИСТИКА В ШАПКЕ */
 
 .header-stats {
@@ -443,6 +453,7 @@ body {
     font-weight: 700;
     color: #92400e;
 }
+
 /* ФУТЕР */
 
 .app-footer {

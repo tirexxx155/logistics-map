@@ -37,14 +37,12 @@
         <div class="header-section">
             <div class="filters">
                 <label>
-                    Груз:
-                    <select id="cargoFilter">
-                        <option value="">Все</option>
-                        <option value="Кукуруза">Кукуруза</option>
-                        <option value="Пшеница">Пшеница</option>
-                        <option value="Подсолнечник">Подсолнечник</option>
-                    </select>
-                </label>
+    Груз:
+    <input
+        type="text"
+        id="cargoFilter"
+    />
+</label>
 
                 <label>
                     Мин. цена, ₽/т:
@@ -57,72 +55,106 @@
                 <div class="panel-toggles">
                     <button id="toggleSidebar" class="btn btn-ghost small">Свернуть список заявок</button>
                     <button id="toggleForm" class="btn btn-ghost small">Свернуть форму</button>
-                    <button id="downloadCsvBtn" class="btn btn-ghost small">Скачать для Excel (CSV)</button>
+                    
                 </div>
             </div>
         </div>
 
         <!-- ДОБАВЛЕНИЕ ЗАЯВКИ -->
-        <div class="header-section add-order">
-            <h2>Добавить заявку</h2>
-            <form id="addOrderForm">
-                <div class="form-row">
-                    <label>
-                        Загрузка:
-                        <input type="text" id="fromInput" required>
-                    </label>
-                    <label>
-                        Выгрузка:
-                        <input type="text" id="toInput" required>
-                    </label>
-                    <label>
-                        Груз:
-                        <select id="cargoInput" required>
-                            <option value="">Выберите...</option>
-                            <option value="Кукуруза">Кукуруза</option>
-                            <option value="Пшеница">Пшеница</option>
-                            <option value="Подсолнечник">Подсолнечник</option>
-                        </select>
-                    </label>
-                </div>
+       <div class="header-section add-order">
+  <h2>Добавить заявку</h2>
+  <form id="addOrderForm">
+    <div class="form-row">
+      <label>
+        Загрузка:
+        <input
+          type="text"
+          id="fromInput"
+          required
+          placeholder="Город / адрес загрузки"
+        />
+      </label>
+      <label>
+        Выгрузка:
+        <input
+          type="text"
+          id="toInput"
+          required
+          placeholder="Город / адрес выгрузки"
+        />
+      </label>
+      <label>
+    Груз:
+    <input
+        type="text"
+        id="cargoInput"
+        required
+    />
+</label>
 
-                <div class="form-row">
-                    <label>
-                        Цена, ₽/т:
-                        <input type="number" id="priceInput" required>
-                    </label>
-                    <label>
-                        Расстояние, км:
-                        <input type="number" id="distanceInput">
-                    </label>
-                </div>
+    </div>
 
-                <div class="form-row">
-                    <label>
-                        Координаты загрузки (клик по карте):
-                        <div class="coords">
-                            <input type="text" id="latInput" placeholder="Широта" readonly>
-                            <input type="text" id="lonInput" placeholder="Долгота" readonly>
-                        </div>
-                    </label>
+    <div class="form-row">
+      <label>
+        Цена, ₽/т:
+        <input type="number" id="priceInput" required />
+      </label>
 
-                    <!-- пока заполняются руками, позже можем сделать второй клик на карту -->
-                    <label>
-                        Координаты выгрузки (введите вручную):
-                        <div class="coords">
-                            <input type="text" id="unloadLatInput" placeholder="Широта">
-                            <input type="text" id="unloadLonInput" placeholder="Долгота">
-                        </div>
-                    </label>
-                </div>
+      <label>
+        Расстояние, км (авто):
+        <input
+          type="text"
+          id="distancePreview"
+          readonly
+          placeholder="будет рассчитано автоматически"
+        />
+      </label>
+    </div>
 
-                <button type="submit" class="btn btn-primary">Добавить на карту</button>
-            </form>
-            <p class="hint">
-                Кликните по карте, чтобы подставить координаты точки загрузки.
-                Координаты выгрузки пока вводятся вручную.
-            </p>
+    <div class="form-row">
+      <label>
+        Координаты загрузки:
+        <div class="coords">
+          <input
+            type="text"
+            id="latInput"
+            placeholder="Широта"
+            readonly
+          />
+          <input
+            type="text"
+            id="lonInput"
+            placeholder="Долгота"
+            readonly
+          />
         </div>
+      </label>
+
+      <label>
+        Координаты выгрузки:
+        <div class="coords">
+          <input
+            type="text"
+            id="unloadLatInput"
+            placeholder="Широта"
+            readonly
+          />
+          <input
+            type="text"
+            id="unloadLonInput"
+            placeholder="Долгота"
+            readonly
+          />
+        </div>
+      </label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Добавить на карту</button>
+  </form>
+
+  
+</div>
+
     </header>
 
     <!-- ОСНОВНОЙ ЛЕЙАУТ: СЛЕВА СПИСОК, СПРАВА КАРТА -->
@@ -137,8 +169,7 @@
                         <th>Цена, ₽/т</th>
                         <th>Загрузка</th>
                         <th>Выгрузка</th>
-                        <th>Действия</th>
-                    </tr>
+                        
                 </thead>
                 <tbody>
                     <!-- строки заполняются из JS -->
@@ -180,14 +211,15 @@
                 </div>
                 <div class="form-row">
                     <label>
-                        Груз:
-                        <select id="editCargoInput" required>
-                            <option value="">Выберите...</option>
-                            <option value="Кукуруза">Кукуруза</option>
-                            <option value="Пшеница">Пшеница</option>
-                            <option value="Подсолнечник">Подсолнечник</option>
-                        </select>
-                    </label>
+    Груз:
+    <input
+        type="text"
+        id="editCargoInput"
+        required
+        placeholder="Вид груза"
+    />
+</label>
+
                     <label>
                         Цена, ₽/т:
                         <input type="number" id="editPriceInput" required>
@@ -208,10 +240,10 @@
     </div>
 
     <!-- Яндекс.Карты -->
-    <script
-      src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=62753f37-5d60-4eb1-a984-4c93875e6942"
-      type="text/javascript">
-    </script>
+   <script
+  src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=62753f37-5d60-4eb1-a984-4c93875e6942&suggest_apikey=62753f37-5d60-4eb1-a984-4c93875e6942"
+  type="text/javascript">
+</script>
 
     <!-- Наш JS -->
     <script src="main.js"></script>

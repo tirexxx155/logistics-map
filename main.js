@@ -5,8 +5,8 @@ const API_BASE =
     ? "http://localhost:5050/api"
     : "/api";
 
-let map;                 // экземпляр ymaps.Map
-let markersLayer;        // ymaps.GeoObjectCollection с маркерами заявок
+let map;                 // ymaps.Map
+let markersLayer;        // ymaps.GeoObjectCollection
 let currentRoute = null; // текущий маршрут (ymaps.route)
 
 let allOrders = [];
@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadOrders();
 });
 
-/* ======================== ИНИЦИАЛИЗАЦИЯ КАРТЫ (ЯНДЕКС) ======================== */
+/* ======================== КАРТА YANDEX ======================== */
 
 function initMap() {
   if (!window.ymaps) {
@@ -46,7 +46,7 @@ function initMap() {
     markersLayer = new ymaps.GeoObjectCollection();
     map.geoObjects.add(markersLayer);
 
-    // Клик по карте — подставляем координаты ЗАГРУЗКИ в форму
+    // Клик по карте — подставляем координаты загрузки
     map.events.add("click", (e) => {
       const coords = e.get("coords");
       const latInput = document.getElementById("latInput");
@@ -57,26 +57,38 @@ function initMap() {
       }
     });
 
-    // если данные уже загружены к этому моменту — отрисуем маркеры
+    // если данные уже загружены к этому моменту — отрисуем
     if (allOrders.length) {
       const data = filteredOrders.length ? filteredOrders : allOrders;
       renderMarkers(data);
     }
+
+    refreshMapSize();
   });
 }
+
+// подстроить карту под размер контейнера
+function refreshMapSize() {
+  if (map && map.container && map.container.fitToViewport) {
+    map.container.fitToViewport();
+  }
+}
+
+// при изменении размера окна — тоже подстроить
+window.addEventListener("resize", refreshMapSize);
 
 /* ======================== UI, КНОПКИ, ФОРМЫ ======================== */
 
 function setupUi() {
-  const applyFilterBtn = document.getElementById("applyFilter");
-  const resetFilterBtn = document.getElementById("resetFilter");
+  const applyFilterBtn   = document.getElementById("applyFilter");
+  const resetFilterBtn   = document.getElementById("resetFilter");
   const toggleSidebarBtn = document.getElementById("toggleSidebar");
-  const toggleFormBtn = document.getElementById("toggleForm");
-  const downloadCsvBtn = document.getElementById("downloadCsvBtn");
-  const addOrderForm = document.getElementById("addOrderForm");
-  const editOrderForm = document.getElementById("editOrderForm");
-  const editCancelBtn = document.getElementById("editCancelBtn");
-  const adminLoginBtn = document.getElementById("adminLoginBtn");
+  const toggleFormBtn    = document.getElementById("toggleForm");
+  const downloadCsvBtn   = document.getElementById("downloadCsvBtn");
+  const addOrderForm     = document.getElementById("addOrderForm");
+  const editOrderForm    = document.getElementById("editOrderForm");
+  const editCancelBtn    = document.getElementById("editCancelBtn");
+  const adminLoginBtn    = document.getElementById("adminLoginBtn");
 
   if (applyFilterBtn) {
     applyFilterBtn.addEventListener("click", () => {
@@ -87,9 +99,9 @@ function setupUi() {
   if (resetFilterBtn) {
     resetFilterBtn.addEventListener("click", () => {
       const cargoFilter = document.getElementById("cargoFilter");
-      const minPrice = document.getElementById("minPrice");
+      const minPrice    = document.getElementById("minPrice");
       if (cargoFilter) cargoFilter.value = "";
-      if (minPrice) minPrice.value = "";
+      if (minPrice)    minPrice.value    = "";
       applyCurrentFilterAndRender();
     });
   }
@@ -102,6 +114,8 @@ function setupUi() {
       toggleSidebarBtn.textContent = sidebar.classList.contains("hidden")
         ? "Показать список заявок"
         : "Свернуть список заявок";
+
+      refreshMapSize();
     });
   }
 
@@ -113,12 +127,15 @@ function setupUi() {
       toggleFormBtn.textContent = addOrderSection.classList.contains("hidden")
         ? "Показать форму"
         : "Свернуть форму";
+
+      refreshMapSize();
     });
   }
 
   if (downloadCsvBtn) {
     downloadCsvBtn.addEventListener("click", () => {
-      const data = filteredOrders && filteredOrders.length ? filteredOrders : allOrders;
+      const data =
+        filteredOrders && filteredOrders.length ? filteredOrders : allOrders;
       downloadCsv(data);
     });
   }
@@ -152,15 +169,41 @@ function restoreAdminState() {
 }
 
 function updateAdminUi() {
-  const adminBtn = document.getElementById("adminLoginBtn");
+  const adminBtn        = document.getElementById("adminLoginBtn");
   const addOrderSection = document.querySelector(".add-order");
+  const toggleFormBtn   = document.getElementById("toggleForm");
+  const actionsHeader   = document.querySelector("#ordersTable thead th:last-child");
 
+  // текст на кнопке входа/выхода
   if (adminBtn) {
-    adminBtn.textContent = isAdmin ? "Выйти из админ режима" : "Войти как админ";
+    adminBtn.textContent = isAdmin
+      ? "Выйти из админ режима"
+      : "Войти как админ";
   }
+
+  // форма добавления заявки видна только админу
   if (addOrderSection) {
     addOrderSection.style.display = isAdmin ? "" : "none";
   }
+
+  // кнопка "Свернуть форму" только для админа
+  if (toggleFormBtn) {
+    toggleFormBtn.style.display = isAdmin ? "" : "none";
+  }
+
+  // заголовок столбца "Действия" (последний th)
+  if (actionsHeader) {
+    actionsHeader.style.display = isAdmin ? "" : "none";
+  }
+
+  // последняя ячейка в каждой строке таблицы
+  const rows = document.querySelectorAll("#ordersTable tbody tr");
+  rows.forEach((tr) => {
+    const lastTd = tr.querySelector("td:last-child");
+    if (lastTd) {
+      lastTd.style.display = isAdmin ? "" : "none";
+    }
+  });
 }
 
 async function onAdminLoginClick() {
@@ -170,6 +213,7 @@ async function onAdminLoginClick() {
     adminToken = null;
     localStorage.removeItem("adminToken");
     updateAdminUi();
+    applyCurrentFilterAndRender();
     return;
   }
 
@@ -192,13 +236,14 @@ async function onAdminLoginClick() {
     isAdmin = true;
     localStorage.setItem("adminToken", adminToken);
     updateAdminUi();
+    applyCurrentFilterAndRender();
   } catch (err) {
     console.error(err);
     alert("Неверный пароль администратора.");
   }
 }
 
-/* ======================== ЗАГРУЗКА ЗАЯВОК С СЕРВЕРА ======================== */
+/* ======================== ЗАГРУЗКА ЗАЯВОК ======================== */
 
 async function loadOrders() {
   try {
@@ -231,10 +276,10 @@ function updateTotalOrdersCounter(total) {
 
 function applyCurrentFilterAndRender() {
   const cargoFilterEl = document.getElementById("cargoFilter");
-  const minPriceEl = document.getElementById("minPrice");
+  const minPriceEl    = document.getElementById("minPrice");
 
   const cargoFilter = cargoFilterEl ? cargoFilterEl.value.trim() : "";
-  const minPrice = minPriceEl ? Number(minPriceEl.value) || 0 : 0;
+  const minPrice    = minPriceEl ? Number(minPriceEl.value) || 0 : 0;
 
   filteredOrders = allOrders.filter((order) => {
     if (cargoFilter && order.cargo !== cargoFilter) {
@@ -261,19 +306,19 @@ function renderOrdersTable(orders) {
   orders.forEach((order, index) => {
     const tr = document.createElement("tr");
 
-    const tdId = document.createElement("td");
+    const tdId    = document.createElement("td");
     const tdCargo = document.createElement("td");
     const tdPrice = document.createElement("td");
-    const tdFrom = document.createElement("td");
-    const tdTo = document.createElement("td");
-    const tdAct = document.createElement("td");
+    const tdFrom  = document.createElement("td");
+    const tdTo    = document.createElement("td");
+    const tdAct   = document.createElement("td");
 
-    tdId.textContent = index + 1;
+    tdId.textContent    = index + 1;
     tdCargo.textContent = order.cargo || "";
     tdPrice.textContent =
       order.pricePerTon != null ? order.pricePerTon : "";
-    tdFrom.textContent = order.from || "";
-    tdTo.textContent = order.to || "";
+    tdFrom.textContent  = order.from || "";
+    tdTo.textContent    = order.to || "";
 
     if (isAdmin) {
       const editBtn = document.createElement("button");
@@ -294,8 +339,6 @@ function renderOrdersTable(orders) {
 
       tdAct.appendChild(editBtn);
       tdAct.appendChild(delBtn);
-    } else {
-      tdAct.textContent = "—";
     }
 
     tr.appendChild(tdId);
@@ -315,9 +358,12 @@ function renderOrdersTable(orders) {
 
     tbody.appendChild(tr);
   });
+
+  // после перерисовки таблицы снова применим правила админ/не-админ
+  updateAdminUi();
 }
 
-/* ======================== МАРКЕРЫ НА КАРТЕ (ЯНДЕКС) ======================== */
+/* ======================== МАРКЕРЫ НА КАРТЕ ======================== */
 
 function renderMarkers(orders) {
   if (!markersLayer || !window.ymaps) return;
@@ -354,32 +400,31 @@ function renderMarkers(orders) {
 
     markersLayer.add(placemark);
   });
+
+  refreshMapSize();
 }
 
-/* ======================== МАРШРУТ ПО ДОРОГЕ (ЯНДЕКС) ======================== */
+/* ======================== МАРШРУТ ПО ДОРОГЕ ======================== */
 
 function drawYandexRoute(order) {
   if (!map || !window.ymaps) return;
 
-  // удаляем предыдущий маршрут
   if (currentRoute) {
     map.geoObjects.remove(currentRoute);
     currentRoute = null;
   }
 
-  // координаты загрузки и выгрузки
   if (
     order.lat == null ||
     order.lon == null ||
     order.unloadLat == null ||
     order.unloadLon == null
   ) {
-    console.warn("Нет координат выгрузки — маршрут не строим");
     return;
   }
 
   const fromPoint = [order.lat, order.lon];
-  const toPoint = [order.unloadLat, order.unloadLon];
+  const toPoint   = [order.unloadLat, order.unloadLon];
 
   ymaps
     .route([fromPoint, toPoint])
@@ -413,28 +458,21 @@ function drawYandexRoute(order) {
 async function onAddOrderSubmit(e) {
   e.preventDefault();
 
-  const fromInput = document.getElementById("fromInput");
-  const toInput = document.getElementById("toInput");
-  const cargoInput = document.getElementById("cargoInput");
-  const priceInput = document.getElementById("priceInput");
-  const distanceInput = document.getElementById("distanceInput");
-  const latInput = document.getElementById("latInput");
-  const lonInput = document.getElementById("lonInput");
+  const fromInput     = document.getElementById("fromInput");     // текст "Загрузка"
+  const toInput       = document.getElementById("toInput");       // текст "Выгрузка"
+  const cargoInput    = document.getElementById("cargoInput");    // тип груза (текст)
+  const priceInput    = document.getElementById("priceInput");
+  const latInput      = document.getElementById("latInput");
+  const lonInput      = document.getElementById("lonInput");
+  const unloadLatInput= document.getElementById("unloadLatInput");
+  const unloadLonInput= document.getElementById("unloadLonInput");
 
-  // координаты выгрузки (если поля есть)
-  const unloadLatInput = document.getElementById("unloadLatInput");
-  const unloadLonInput = document.getElementById("unloadLonInput");
-
-  const from = fromInput?.value.trim() || "";
-  const to = toInput?.value.trim() || "";
-  const cargo = cargoInput?.value.trim() || "";
-  const price = Number(priceInput?.value) || 0;
-  const distance = distanceInput?.value
-    ? Number(distanceInput.value)
-    : null;
-  const lat = latInput?.value ? Number(latInput.value) : null;
-  const lon = lonInput?.value ? Number(lonInput.value) : null;
-
+  const from   = fromInput?.value.trim() || "";
+  const to     = toInput?.value.trim() || "";
+  const cargo  = cargoInput?.value.trim() || "";
+  const price  = Number(priceInput?.value) || 0;
+  const lat    = latInput?.value ? Number(latInput.value) : null;
+  const lon    = lonInput?.value ? Number(lonInput.value) : null;
   const unloadLat = unloadLatInput?.value
     ? Number(unloadLatInput.value)
     : null;
@@ -447,9 +485,26 @@ async function onAddOrderSubmit(e) {
     return;
   }
 
-  if (lat == null || lon == null) {
-    alert("Нужно кликнуть по карте, чтобы задать координаты загрузки.");
+  if (
+    lat == null ||
+    lon == null ||
+    unloadLat == null ||
+    unloadLon == null
+  ) {
+    alert(
+      "Нужно задать координаты загрузки и выгрузки (клик по карте или через поиск)."
+    );
     return;
+  }
+
+  // сначала построим маршрут, чтобы взять расстояние
+  let distanceKm = null;
+  try {
+    const route = await ymaps.route([[lat, lon], [unloadLat, unloadLon]]);
+    const meters = route.getLength(); // длина маршрута
+    distanceKm = Math.round(meters / 1000);
+  } catch (err) {
+    console.warn("Не получилось посчитать расстояние:", err);
   }
 
   const newOrder = {
@@ -457,15 +512,12 @@ async function onAddOrderSubmit(e) {
     to,
     cargo,
     pricePerTon: price,
-    distanceKm: distance,
+    distanceKm,
     lat,
     lon,
+    unloadLat,
+    unloadLon,
   };
-
-  if (unloadLat != null && unloadLon != null) {
-    newOrder.unloadLat = unloadLat;
-    newOrder.unloadLon = unloadLon;
-  }
 
   try {
     const headers = { "Content-Type": "application/json" };
@@ -484,15 +536,14 @@ async function onAddOrderSubmit(e) {
     }
 
     // очищаем форму
-    fromInput.value = "";
-    toInput.value = "";
-    cargoInput.value = "";
-    priceInput.value = "";
-    distanceInput.value = "";
-    latInput.value = "";
-    lonInput.value = "";
-    if (unloadLatInput) unloadLatInput.value = "";
-    if (unloadLonInput) unloadLonInput.value = "";
+    fromInput.value      = "";
+    toInput.value        = "";
+    cargoInput.value     = "";
+    priceInput.value     = "";
+    latInput.value       = "";
+    lonInput.value       = "";
+    unloadLatInput.value = "";
+    unloadLonInput.value = "";
 
     await loadOrders();
   } catch (err) {
@@ -533,10 +584,10 @@ async function deleteOrder(id) {
 function openEditModal(order) {
   editingOrderId = order._id;
 
-  document.getElementById("editFromInput").value = order.from || "";
-  document.getElementById("editToInput").value = order.to || "";
-  document.getElementById("editCargoInput").value = order.cargo || "";
-  document.getElementById("editPriceInput").value =
+  document.getElementById("editFromInput").value   = order.from || "";
+  document.getElementById("editToInput").value     = order.to || "";
+  document.getElementById("editCargoInput").value  = order.cargo || "";
+  document.getElementById("editPriceInput").value  =
     order.pricePerTon != null ? order.pricePerTon : "";
   document.getElementById("editDistanceInput").value =
     order.distanceKm != null ? order.distanceKm : "";
@@ -559,16 +610,16 @@ async function onEditOrderSubmit(e) {
   e.preventDefault();
   if (!editingOrderId) return;
 
-  const fromInput = document.getElementById("editFromInput");
-  const toInput = document.getElementById("editToInput");
-  const cargoInput = document.getElementById("editCargoInput");
-  const priceInput = document.getElementById("editPriceInput");
+  const fromInput     = document.getElementById("editFromInput");
+  const toInput       = document.getElementById("editToInput");
+  const cargoInput    = document.getElementById("editCargoInput");
+  const priceInput    = document.getElementById("editPriceInput");
   const distanceInput = document.getElementById("editDistanceInput");
 
-  const from = fromInput.value.trim();
-  const to = toInput.value.trim();
-  const cargo = cargoInput.value.trim();
-  const price = Number(priceInput.value) || 0;
+  const from   = fromInput.value.trim();
+  const to     = toInput.value.trim();
+  const cargo  = cargoInput.value.trim();
+  const price  = Number(priceInput.value) || 0;
   const distance = distanceInput.value
     ? Number(distanceInput.value)
     : null;
