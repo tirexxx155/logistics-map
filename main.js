@@ -434,7 +434,7 @@ function drawYandexRoute(order) {
       const paths = route.getPaths();
       paths.options.set({
         strokeWidth: 4,
-        strokeColor: "#ff5500", // тут можно менять цвет маршрута
+         strokeColor: "#51e00e", // тут можно менять цвет маршрута
         opacity: 0.85,
       });
 
