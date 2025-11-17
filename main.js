@@ -2,7 +2,7 @@
 const API_BASE =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5050/api"
+    ? "https://logistics-map.onrender.com/api"
     : "/api";
 
 let map;                 // ymaps.Map
@@ -378,14 +378,11 @@ function renderMarkers(orders) {
       {
         balloonContent: `
           <b>${order.cargo || "Груз"}</b><br/>
-          Загрузка: ${order.from || "-"}<br/>
-          Выгрузка: ${order.to || "-"}<br/>
-          Цена: ${
-            order.pricePerTon != null ? order.pricePerTon + " ₽/т" : "-"
-          }<br/>
-          Расстояние: ${
-            order.distanceKm != null ? order.distanceKm + " км" : "-"
-          }
+      Загрузка: ${order.from || "-"}<br/>
+      Выгрузка: ${order.to || "-"}<br/>
+      Цена: ${order.pricePerTon != null ? order.pricePerTon + " ₽/т" : "-"}<br/>
+      Расстояние: ${order.distanceKm != null ? order.distanceKm + " км" : "-"}
+      ${commentLine}
         `,
       },
       {
@@ -470,147 +467,112 @@ async function geocodeAddress(address) {
     return null;
   }
 }
+// Геокодирование адреса -> [lat, lon] или null
+function geocodeAddress(address) {
+  if (!window.ymaps) {
+    return Promise.reject(new Error("Yandex Maps API не загружен"));
+  }
+
+  return ymaps
+    .geocode(address, { results: 1 })
+    .then((res) => {
+      const geoObject = res.geoObjects.get(0);
+      if (!geoObject) return null;
+      return geoObject.geometry.getCoordinates(); // [lat, lon]
+    })
+    .catch((err) => {
+      console.error("Ошибка геокодирования:", err);
+      return null;
+    });
+}
 
 
 async function onAddOrderSubmit(e) {
   e.preventDefault();
 
-  // Поля формы
-  const fromInput        = document.getElementById('fromInput');
-  const toInput          = document.getElementById('toInput');
-  const cargoInput       = document.getElementById('cargoInput');
-  const priceInput       = document.getElementById('priceInput');
+  const fromInput    = document.getElementById("fromInput");
+  const toInput      = document.getElementById("toInput");
+  const cargoInput   = document.getElementById("cargoInput");
+  const priceInput   = document.getElementById("priceInput");
+  const commentInput = document.getElementById("commentInput");
 
-  const latInput         = document.getElementById('latInput');
-  const lonInput         = document.getElementById('lonInput');
-  const unloadLatInput   = document.getElementById('unloadLatInput');
-  const unloadLonInput   = document.getElementById('unloadLonInput');
-
-  const from   = fromInput?.value.trim()  || '';
-  const to     = toInput?.value.trim()    || '';
-  const cargo  = cargoInput?.value.trim() || '';
-  const price  = Number(priceInput?.value) || 0;
+  const from    = fromInput?.value.trim() || "";
+  const to      = toInput?.value.trim() || "";
+  const cargo   = cargoInput?.value.trim() || "";
+  const price   = Number(priceInput?.value) || 0;
+  const comment = commentInput?.value.trim() || "";
 
   if (!from || !to || !cargo || !price) {
     alert('Заполните поля "Загрузка", "Выгрузка", "Груз" и "Цена".');
     return;
   }
 
-  // Берём координаты из полей, если они уже есть
-  let lat       = latInput?.value       ? Number(latInput.value)       : null;
-  let lon       = lonInput?.value       ? Number(lonInput.value)       : null;
-  let unloadLat = unloadLatInput?.value ? Number(unloadLatInput.value) : null;
-  let unloadLon = unloadLonInput?.value ? Number(unloadLonInput.value) : null;
-
-  // --- 1. Если координат нет, геокодим адреса автоматически ---
-  if ((!lat || !lon) && window.ymaps) {
-    const coords = await geocodeAddress(from);
-    if (coords) {
-      lat = coords[0];
-      lon = coords[1];
-      if (latInput) latInput.value = lat.toFixed(6);
-      if (lonInput) lonInput.value = lon.toFixed(6);
-    }
-  }
-
-  if ((!unloadLat || !unloadLon) && window.ymaps) {
-    const coords = await geocodeAddress(to);
-    if (coords) {
-      unloadLat = coords[0];
-      unloadLon = coords[1];
-      if (unloadLatInput) unloadLatInput.value = unloadLat.toFixed(6);
-      if (unloadLonInput) unloadLonInput.value = unloadLon.toFixed(6);
-    }
-  }
-
-  // Если после геокодинга всё ещё нет координат — сдаёмся
-  if (lat == null || lon == null || unloadLat == null || unloadLon == null) {
-    alert('Нужно задать координаты загрузки и выгрузки. ' +
-          'Адрес не найден — попробуйте уточнить город/улицу/дом.');
+  if (!window.ymaps) {
+    alert("Карты ещё не загрузились, попробуйте через пару секунд.");
     return;
   }
 
-  const fromCoords = [lat, lon];
-  const toCoords   = [unloadLat, unloadLon];
-
-  // --- 2. Строим маршрут и считаем расстояние ---
-  let distanceKm = null;
-
-  if (window.ymaps && map) {
-    try {
-      const route = await ymaps.route([fromCoords, toCoords]);
-
-      // убираем старый маршрут
-      if (currentRoute) {
-        map.geoObjects.remove(currentRoute);
-      }
-      currentRoute = route;
-
-      const paths = route.getPaths();
-      paths.options.set({
-        strokeWidth: 4,
-        strokeColor: '#ff5500',
-        opacity: 0.85,
-      });
-      map.geoObjects.add(route);
-
-      const bounds = route.getBounds();
-      if (bounds) {
-        map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 30 });
-      }
-
-      distanceKm = Math.round(route.getLength() / 1000);
-    } catch (err) {
-      console.error('Route build error while adding order:', err);
-    }
-  }
-
-  const newOrder = {
-    from,
-    to,
-    cargo,
-    pricePerTon: price,
-    distanceKm,
-    lat,
-    lon,
-    unloadLat,
-    unloadLon,
-  };
-
-  // --- 3. Сохраняем заявку на сервере ---
   try {
-    const headers = { 'Content-Type': 'application/json' };
+    // 1) Берём координаты по адресам
+    const fromCoords = await geocodeAddress(from);
+    const toCoords   = await geocodeAddress(to);
+
+    if (!fromCoords || !toCoords) {
+      alert(
+        "Не удалось определить координаты по введённым адресам. Попробуйте уточнить адрес."
+      );
+      return;
+    }
+
+    // 2) Строим маршрут и считаем расстояние
+    const route          = await ymaps.route([fromCoords, toCoords]);
+    const distanceMeters = route.getLength();     // в метрах
+    const distanceKm     = Math.round(distanceMeters / 1000); // в км
+
+    // 3) Формируем заявку
+    const newOrder = {
+      from,
+      to,
+      cargo,
+      pricePerTon: price,
+      distanceKm,                // <-- здесь уже готовое расстояние
+      lat: fromCoords[0],
+      lon: fromCoords[1],
+      unloadLat: toCoords[0],
+      unloadLon: toCoords[1],
+      comment,
+    };
+
+    const headers = { "Content-Type": "application/json" };
     if (adminToken) {
-      headers['Authorization'] = 'Bearer ' + adminToken;
+      headers["Authorization"] = "Bearer " + adminToken;
     }
 
     const res = await fetch(`${API_BASE}/orders`, {
-      method: 'POST',
+      method: "POST",
       headers,
       body: JSON.stringify(newOrder),
     });
 
     if (!res.ok) {
-      throw new Error('Failed to create order');
+      throw new Error("Failed to create order");
     }
 
-    // Чистим форму
-    fromInput.value = '';
-    toInput.value = '';
-    cargoInput.value = '';
-    priceInput.value = '';
+    // 4) Чистим форму
+    fromInput.value    = "";
+    toInput.value      = "";
+    cargoInput.value   = "";
+    priceInput.value   = "";
+    if (commentInput) commentInput.value = "";
 
-    if (latInput)       latInput.value = '';
-    if (lonInput)       lonInput.value = '';
-    if (unloadLatInput) unloadLatInput.value = '';
-    if (unloadLonInput) unloadLonInput.value = '';
-
+    // 5) Перезагружаем список заявок
     await loadOrders();
   } catch (err) {
     console.error(err);
-    alert('Не удалось добавить заявку.');
+    alert("Не удалось добавить заявку или рассчитать маршрут. См. консоль.");
   }
 }
+
 
 
 /* ======================== УДАЛЕНИЕ ЗАЯВКИ ======================== */
@@ -645,13 +607,18 @@ async function deleteOrder(id) {
 function openEditModal(order) {
   editingOrderId = order._id;
 
-  document.getElementById("editFromInput").value   = order.from || "";
-  document.getElementById("editToInput").value     = order.to || "";
-  document.getElementById("editCargoInput").value  = order.cargo || "";
-  document.getElementById("editPriceInput").value  =
+  document.getElementById("editFromInput").value    = order.from || "";
+  document.getElementById("editToInput").value      = order.to || "";
+  document.getElementById("editCargoInput").value   = order.cargo || "";
+  document.getElementById("editPriceInput").value   =
     order.pricePerTon != null ? order.pricePerTon : "";
   document.getElementById("editDistanceInput").value =
     order.distanceKm != null ? order.distanceKm : "";
+
+  const editCommentInput = document.getElementById("editCommentInput");
+  if (editCommentInput) {
+    editCommentInput.value = order.comment || "";
+  }
 
   const modal = document.getElementById("editModal");
   if (modal) {
@@ -659,31 +626,24 @@ function openEditModal(order) {
   }
 }
 
-function closeEditModal() {
-  const modal = document.getElementById("editModal");
-  if (modal) {
-    modal.classList.add("hidden");
-  }
-  editingOrderId = null;
-}
 
 async function onEditOrderSubmit(e) {
   e.preventDefault();
   if (!editingOrderId) return;
 
-  const fromInput     = document.getElementById("editFromInput");
-  const toInput       = document.getElementById("editToInput");
-  const cargoInput    = document.getElementById("editCargoInput");
-  const priceInput    = document.getElementById("editPriceInput");
-  const distanceInput = document.getElementById("editDistanceInput");
+  const fromInput      = document.getElementById("editFromInput");
+  const toInput        = document.getElementById("editToInput");
+  const cargoInput     = document.getElementById("editCargoInput");
+  const priceInput     = document.getElementById("editPriceInput");
+  const distanceInput  = document.getElementById("editDistanceInput");
+  const commentInput   = document.getElementById("editCommentInput");
 
-  const from   = fromInput.value.trim();
-  const to     = toInput.value.trim();
-  const cargo  = cargoInput.value.trim();
-  const price  = Number(priceInput.value) || 0;
-  const distance = distanceInput.value
-    ? Number(distanceInput.value)
-    : null;
+  const from     = fromInput.value.trim();
+  const to       = toInput.value.trim();
+  const cargo    = cargoInput.value.trim();
+  const price    = Number(priceInput.value) || 0;
+  const distance = distanceInput.value ? Number(distanceInput.value) : null;
+  const comment  = commentInput ? commentInput.value.trim() : "";
 
   if (!from || !to || !cargo || !price) {
     alert('Заполните поля "Загрузка", "Выгрузка", "Груз" и "Цена".');
@@ -696,6 +656,7 @@ async function onEditOrderSubmit(e) {
     cargo,
     pricePerTon: price,
     distanceKm: distance,
+    comment,          // <-- тоже сохраняем
   };
 
   try {
@@ -719,6 +680,7 @@ async function onEditOrderSubmit(e) {
     alert("Не удалось сохранить изменения.");
   }
 }
+
 
 /* ======================== ВЫГРУЗКА В CSV ======================== */
 

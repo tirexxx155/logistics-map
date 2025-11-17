@@ -34,22 +34,20 @@ mongoose
 // ------------ МОДЕЛЬ ЗАЯВКИ ------------
 const orderSchema = new mongoose.Schema(
   {
-    from: String,        // текст "Загрузка"
-    to: String,          // текст "Выгрузка"
+    from: String,
+    to: String,
     cargo: String,
     pricePerTon: Number,
     distanceKm: Number,
-
-    // Координаты точки ЗАГРУЗКИ (как раньше)
     lat: Number,
     lon: Number,
-
-    // Новые поля: координаты ВЫГРУЗКИ
     unloadLat: Number,
     unloadLon: Number,
+    comment: String,          // <-- новое поле
   },
   { timestamps: true }
 );
+
 
 
 const Order = mongoose.model('Order', orderSchema);

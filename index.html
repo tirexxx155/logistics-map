@@ -67,90 +67,37 @@
     <div class="form-row">
       <label>
         Загрузка:
-        <input
-          type="text"
-          id="fromInput"
-          required
-          placeholder="Город / адрес загрузки"
-        />
+        <input type="text" id="fromInput" placeholder="Город, адрес загрузки" required>
       </label>
       <label>
         Выгрузка:
-        <input
-          type="text"
-          id="toInput"
-          required
-          placeholder="Город / адрес выгрузки"
-        />
+        <input type="text" id="toInput" placeholder="Город, адрес выгрузки" required>
       </label>
       <label>
-    Груз:
-    <input
-        type="text"
-        id="cargoInput"
-        required
-    />
-</label>
-
+        Груз:
+        <input type="text" id="cargoInput" placeholder="Тип груза" required>
+      </label>
     </div>
 
     <div class="form-row">
       <label>
         Цена, ₽/т:
-        <input type="number" id="priceInput" required />
+        <input type="number" id="priceInput" required>
       </label>
 
-      <label>
-        Расстояние, км (авто):
-        <input
-          type="text"
-          id="distancePreview"
-          readonly
-          placeholder="будет рассчитано автоматически"
-        />
+      <label style="flex:1;">
+        Комментарий:
+        <input type="text" id="commentInput" placeholder="Например: срочно, 25 т, нужен тент">
       </label>
     </div>
 
-    <div class="form-row">
-      <label>
-        Координаты загрузки:
-        <div class="coords">
-          <input
-            type="text"
-            id="latInput"
-            placeholder="Широта"
-            readonly
-          />
-          <input
-            type="text"
-            id="lonInput"
-            placeholder="Долгота"
-            readonly
-          />
-        </div>
-      </label>
-
-      <label>
-        Координаты выгрузки:
-        <div class="coords">
-          <input
-            type="text"
-            id="unloadLatInput"
-            placeholder="Широта"
-            readonly
-          />
-          <input
-            type="text"
-            id="unloadLonInput"
-            placeholder="Долгота"
-            readonly
-          />
-        </div>
-      </label>
-    </div>
+    <p class="hint">
+      Координаты и расстояние будут определены автоматически по адресам загрузки и выгрузки.
+    </p>
 
     <button type="submit" class="btn btn-primary">Добавить на карту</button>
   </form>
+</div>
 
   
 </div>
@@ -194,50 +141,53 @@
     </footer>
 
     <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ -->
-    <div id="editModal" class="modal hidden">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-            <h2>Редактировать заявку</h2>
-            <form id="editOrderForm">
-                <div class="form-row">
-                    <label>
-                        Загрузка:
-                        <input type="text" id="editFromInput" required>
-                    </label>
-                    <label>
-                        Выгрузка:
-                        <input type="text" id="editToInput" required>
-                    </label>
-                </div>
-                <div class="form-row">
-                    <label>
-    Груз:
-    <input
-        type="text"
-        id="editCargoInput"
-        required
-        placeholder="Вид груза"
-    />
-</label>
+    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ -->
+<div id="editModal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <h2>Редактировать заявку</h2>
+    <form id="editOrderForm">
+      <div class="form-row">
+        <label>
+          Загрузка:
+          <input type="text" id="editFromInput" required>
+        </label>
+        <label>
+          Выгрузка:
+          <input type="text" id="editToInput" required>
+        </label>
+      </div>
 
-                    <label>
-                        Цена, ₽/т:
-                        <input type="number" id="editPriceInput" required>
-                    </label>
-                </div>
-                <div class="form-row">
-                    <label>
-                        Расстояние, км:
-                        <input type="number" id="editDistanceInput">
-                    </label>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" id="editCancelBtn" class="btn btn-ghost">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Сохранить</button>
-                </div>
-            </form>
-        </div>
-    </div>
+      <div class="form-row">
+        <label>
+          Груз:
+          <input type="text" id="editCargoInput" required>
+        </label>
+        <label>
+          Цена, ₽/т:
+          <input type="number" id="editPriceInput" required>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>
+          Расстояние, км:
+          <input type="number" id="editDistanceInput">
+        </label>
+        <label style="flex: 1;">
+          Комментарий:
+          <input type="text" id="editCommentInput" placeholder="Комментарий к заявке">
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="editCancelBtn" class="btn btn-ghost">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 
     <!-- Яндекс.Карты -->
    <script
