@@ -1,13 +1,28 @@
-// Базовый адрес API (локально -> localhost, в интернете -> /api)
-const API_BASE =
+// ======================== НАСТРОЙКА API ========================
+
+// ЛОКАЛЬНО:
+//   - фронт (VS Code Live Server) → http://127.0.0.1:5500
+//   - сервер (Node/Express)      → http://localhost:5050
+//
+// ПРОД (Render):
+//   - всё на одном домене, API = /api
+
+let API_BASE;
+if (
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5050/api"
-    : "/api";
+) {
+  API_BASE = "http://localhost:5050/api";
+} else {
+  API_BASE = "/api";
+}
+console.log("API_BASE =", API_BASE);
+
+// ======================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ========================
 
 let map;                 // ymaps.Map
 let markersLayer;        // ymaps.GeoObjectCollection
-let currentRoute = null; // текущий маршрут (ymaps.route)
+let currentRoute = null; // ymaps.multiRouter.MultiRoute или route
 
 let allOrders = [];
 let filteredOrders = [];
@@ -18,16 +33,16 @@ let editingOrderId = null;
 let isAdmin = false;
 let adminToken = null;
 
-/* ======================== СТАРТ ======================== */
+// ======================== СТАРТ ПРИ ЗАГРУЗКЕ ========================
 
 document.addEventListener("DOMContentLoaded", () => {
-  initMap();
   setupUi();
+  initMap();
   restoreAdminState();
   loadOrders();
 });
 
-/* ======================== КАРТА YANDEX ======================== */
+// ======================== ИНИЦИАЛИЗАЦИЯ КАРТЫ ========================
 
 function initMap() {
   if (!window.ymaps) {
@@ -42,42 +57,23 @@ function initMap() {
       controls: ["zoomControl", "typeSelector", "fullscreenControl"],
     });
 
-    // Коллекция маркеров
     markersLayer = new ymaps.GeoObjectCollection();
     map.geoObjects.add(markersLayer);
-
-    // Клик по карте — подставляем координаты загрузки
-    map.events.add("click", (e) => {
-      const coords = e.get("coords");
-      const latInput = document.getElementById("latInput");
-      const lonInput = document.getElementById("lonInput");
-      if (latInput && lonInput) {
-        latInput.value = coords[0].toFixed(6);
-        lonInput.value = coords[1].toFixed(6);
-      }
-    });
-
-    // если данные уже загружены к этому моменту — отрисуем
-    if (allOrders.length) {
-      const data = filteredOrders.length ? filteredOrders : allOrders;
-      renderMarkers(data);
-    }
 
     refreshMapSize();
   });
 }
 
-// подстроить карту под размер контейнера
+// Подстроить карту под размер контейнера
 function refreshMapSize() {
   if (map && map.container && map.container.fitToViewport) {
     map.container.fitToViewport();
   }
 }
 
-// при изменении размера окна — тоже подстроить
 window.addEventListener("resize", refreshMapSize);
 
-/* ======================== UI, КНОПКИ, ФОРМЫ ======================== */
+// ======================== UI, КНОПКИ, ФОРМЫ ========================
 
 function setupUi() {
   const applyFilterBtn   = document.getElementById("applyFilter");
@@ -91,9 +87,7 @@ function setupUi() {
   const adminLoginBtn    = document.getElementById("adminLoginBtn");
 
   if (applyFilterBtn) {
-    applyFilterBtn.addEventListener("click", () => {
-      applyCurrentFilterAndRender();
-    });
+    applyFilterBtn.addEventListener("click", applyCurrentFilterAndRender);
   }
 
   if (resetFilterBtn) {
@@ -114,7 +108,6 @@ function setupUi() {
       toggleSidebarBtn.textContent = sidebar.classList.contains("hidden")
         ? "Показать список заявок"
         : "Свернуть список заявок";
-
       refreshMapSize();
     });
   }
@@ -127,7 +120,6 @@ function setupUi() {
       toggleFormBtn.textContent = addOrderSection.classList.contains("hidden")
         ? "Показать форму"
         : "Свернуть форму";
-
       refreshMapSize();
     });
   }
@@ -157,7 +149,7 @@ function setupUi() {
   }
 }
 
-/* ======================== АДМИН-РЕЖИМ ======================== */
+// ======================== АДМИН-РЕЖИМ ========================
 
 function restoreAdminState() {
   const stored = localStorage.getItem("adminToken");
@@ -172,31 +164,32 @@ function updateAdminUi() {
   const adminBtn        = document.getElementById("adminLoginBtn");
   const addOrderSection = document.querySelector(".add-order");
   const toggleFormBtn   = document.getElementById("toggleForm");
-  const actionsHeader   = document.querySelector("#ordersTable thead th:last-child");
+  const actionsHeader   = document.querySelector(
+    "#ordersTable thead th:last-child"
+  );
 
-  // текст на кнопке входа/выхода
   if (adminBtn) {
     adminBtn.textContent = isAdmin
       ? "Выйти из админ режима"
       : "Войти как админ";
   }
 
-  // форма добавления заявки видна только админу
+  // форма добавления заявки
   if (addOrderSection) {
     addOrderSection.style.display = isAdmin ? "" : "none";
   }
 
-  // кнопка "Свернуть форму" только для админа
+  // кнопка "Свернуть форму"
   if (toggleFormBtn) {
     toggleFormBtn.style.display = isAdmin ? "" : "none";
   }
 
-  // заголовок столбца "Действия" (последний th)
+  // заголовок последнего столбца (Действия)
   if (actionsHeader) {
     actionsHeader.style.display = isAdmin ? "" : "none";
   }
 
-  // последняя ячейка в каждой строке таблицы
+  // последняя ячейка в каждой строке
   const rows = document.querySelectorAll("#ordersTable tbody tr");
   rows.forEach((tr) => {
     const lastTd = tr.querySelector("td:last-child");
@@ -208,7 +201,7 @@ function updateAdminUi() {
 
 async function onAdminLoginClick() {
   if (isAdmin) {
-    // выходим из админ-режима
+    // выходим
     isAdmin = false;
     adminToken = null;
     localStorage.removeItem("adminToken");
@@ -243,7 +236,7 @@ async function onAdminLoginClick() {
   }
 }
 
-/* ======================== ЗАГРУЗКА ЗАЯВОК ======================== */
+// ======================== ЗАГРУЗКА ЗАЯВОК ========================
 
 async function loadOrders() {
   try {
@@ -263,8 +256,6 @@ async function loadOrders() {
   }
 }
 
-/* ======================== СЧЁТЧИК ВСЕХ ЗАЯВОК ======================== */
-
 function updateTotalOrdersCounter(total) {
   const el = document.getElementById("totalOrders");
   if (el) {
@@ -272,7 +263,7 @@ function updateTotalOrdersCounter(total) {
   }
 }
 
-/* ======================== ФИЛЬТР + ОТРИСОВКА ======================== */
+// ======================== ФИЛЬТР + ОТРИСОВКА ========================
 
 function applyCurrentFilterAndRender() {
   const cargoFilterEl = document.getElementById("cargoFilter");
@@ -295,7 +286,7 @@ function applyCurrentFilterAndRender() {
   renderMarkers(filteredOrders);
 }
 
-/* ======================== ТАБЛИЦА ЗАЯВОК ======================== */
+// ======================== ТАБЛИЦА ЗАЯВОК ========================
 
 function renderOrdersTable(orders) {
   const tbody = document.querySelector("#ordersTable tbody");
@@ -306,23 +297,27 @@ function renderOrdersTable(orders) {
   orders.forEach((order, index) => {
     const tr = document.createElement("tr");
 
-    const tdId    = document.createElement("td");
-    const tdCargo = document.createElement("td");
-    const tdPrice = document.createElement("td");
-    const tdFrom  = document.createElement("td");
-    const tdTo    = document.createElement("td");
-    const tdAct   = document.createElement("td");
+    const tdId       = document.createElement("td");
+    const tdCargo    = document.createElement("td");
+    const tdPrice    = document.createElement("td");
+    const tdFrom     = document.createElement("td");
+    const tdTo       = document.createElement("td");
+    const tdComment  = document.createElement("td");
+    const tdAct      = document.createElement("td");
 
-    tdId.textContent    = index + 1;
-    tdCargo.textContent = order.cargo || "";
-    tdPrice.textContent =
-      order.pricePerTon != null ? order.pricePerTon : "";
-    tdFrom.textContent  = order.from || "";
-    tdTo.textContent    = order.to || "";
+    // 🔹 делаем столбец действий узким и настраиваемым по CSS
+    tdAct.classList.add("actions-cell");
+
+    tdId.textContent       = index + 1;
+    tdCargo.textContent    = order.cargo || "";
+    tdPrice.textContent    = order.pricePerTon != null ? order.pricePerTon : "";
+    tdFrom.textContent     = order.from || "";
+    tdTo.textContent       = order.to || "";
+    tdComment.textContent  = order.comment || "";
 
     if (isAdmin) {
       const editBtn = document.createElement("button");
-      editBtn.textContent = "Редактировать";
+      editBtn.textContent = "Ред.";            // было "Редактировать"
       editBtn.className = "edit-btn";
       editBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -330,7 +325,7 @@ function renderOrdersTable(orders) {
       });
 
       const delBtn = document.createElement("button");
-      delBtn.textContent = "Удалить";
+      delBtn.textContent = "Удал.";            // было "Удалить"
       delBtn.className = "delete-btn";
       delBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -346,6 +341,7 @@ function renderOrdersTable(orders) {
     tr.appendChild(tdPrice);
     tr.appendChild(tdFrom);
     tr.appendChild(tdTo);
+    tr.appendChild(tdComment);
     tr.appendChild(tdAct);
 
     // клик по строке — центрируем карту и строим маршрут
@@ -359,11 +355,12 @@ function renderOrdersTable(orders) {
     tbody.appendChild(tr);
   });
 
-  // после перерисовки таблицы снова применим правила админ/не-админ
+  // после перерисовки таблицы обновляем отображение для админа/не-админа
   updateAdminUi();
 }
 
-/* ======================== МАРКЕРЫ НА КАРТЕ ======================== */
+
+// ======================== МАРКЕРЫ НА КАРТЕ ========================
 
 function renderMarkers(orders) {
   if (!markersLayer || !window.ymaps) return;
@@ -373,16 +370,23 @@ function renderMarkers(orders) {
   orders.forEach((order) => {
     if (order.lat == null || order.lon == null) return;
 
+    const commentLine = order.comment
+      ? `<br/>Комментарий: ${order.comment}`
+      : "";
+
     const placemark = new ymaps.Placemark(
       [order.lat, order.lon],
       {
         balloonContent: `
           <b>${order.cargo || "Груз"}</b><br/>
-      Загрузка: ${order.from || "-"}<br/>
-      Выгрузка: ${order.to || "-"}<br/>
-      Цена: ${order.pricePerTon != null ? order.pricePerTon + " ₽/т" : "-"}<br/>
-      Расстояние: ${order.distanceKm != null ? order.distanceKm + " км" : "-"}
-      ${commentLine}
+          Загрузка: ${order.from || "-"}<br/>
+          Выгрузка: ${order.to || "-"}<br/>
+          Цена: ${
+            order.pricePerTon != null ? order.pricePerTon + " ₽/т" : "-"
+          }<br/>
+          Расстояние: ${
+            order.distanceKm != null ? order.distanceKm + " км" : "-"
+          }${commentLine}
         `,
       },
       {
@@ -390,7 +394,6 @@ function renderMarkers(orders) {
       }
     );
 
-    // по клику по маркеру — маршрут по дороге
     placemark.events.add("click", () => {
       drawYandexRoute(order);
     });
@@ -401,7 +404,7 @@ function renderMarkers(orders) {
   refreshMapSize();
 }
 
-/* ======================== МАРШРУТ ПО ДОРОГЕ ======================== */
+// ======================== МАРШРУТ ПО ДОРОГЕ ========================
 
 function drawYandexRoute(order) {
   if (!map || !window.ymaps) return;
@@ -431,7 +434,7 @@ function drawYandexRoute(order) {
       const paths = route.getPaths();
       paths.options.set({
         strokeWidth: 4,
-        strokeColor: "#ff5500",
+        strokeColor: "#ff5500", // тут можно менять цвет маршрута
         opacity: 0.85,
       });
 
@@ -450,24 +453,8 @@ function drawYandexRoute(order) {
     });
 }
 
-/* ======================== ДОБАВЛЕНИЕ ЗАЯВКИ ======================== */
-// Геокодинг адреса через Яндекс.Карты: возвращает [lat, lon] или null
-async function geocodeAddress(address) {
-  if (!address || !window.ymaps) return null;
+// ======================== ГЕОКОДИНГ АДРЕСА ========================
 
-  try {
-    const res = await ymaps.geocode(address, { results: 1 });
-    const firstGeo = res.geoObjects.get(0);
-    if (!firstGeo) return null;
-
-    const coords = firstGeo.geometry.getCoordinates(); // [lat, lon]
-    return coords;
-  } catch (err) {
-    console.error('Geocode error:', err);
-    return null;
-  }
-}
-// Геокодирование адреса -> [lat, lon] или null
 function geocodeAddress(address) {
   if (!window.ymaps) {
     return Promise.reject(new Error("Yandex Maps API не загружен"));
@@ -486,6 +473,7 @@ function geocodeAddress(address) {
     });
 }
 
+// ======================== ДОБАВЛЕНИЕ ЗАЯВКИ ========================
 
 async function onAddOrderSubmit(e) {
   e.preventDefault();
@@ -513,7 +501,6 @@ async function onAddOrderSubmit(e) {
   }
 
   try {
-    // 1) Берём координаты по адресам
     const fromCoords = await geocodeAddress(from);
     const toCoords   = await geocodeAddress(to);
 
@@ -524,18 +511,16 @@ async function onAddOrderSubmit(e) {
       return;
     }
 
-    // 2) Строим маршрут и считаем расстояние
     const route          = await ymaps.route([fromCoords, toCoords]);
-    const distanceMeters = route.getLength();     // в метрах
-    const distanceKm     = Math.round(distanceMeters / 1000); // в км
+    const distanceMeters = route.getLength();
+    const distanceKm     = Math.round(distanceMeters / 1000);
 
-    // 3) Формируем заявку
     const newOrder = {
       from,
       to,
       cargo,
       pricePerTon: price,
-      distanceKm,                // <-- здесь уже готовое расстояние
+      distanceKm,
       lat: fromCoords[0],
       lon: fromCoords[1],
       unloadLat: toCoords[0],
@@ -558,14 +543,12 @@ async function onAddOrderSubmit(e) {
       throw new Error("Failed to create order");
     }
 
-    // 4) Чистим форму
     fromInput.value    = "";
     toInput.value      = "";
     cargoInput.value   = "";
     priceInput.value   = "";
     if (commentInput) commentInput.value = "";
 
-    // 5) Перезагружаем список заявок
     await loadOrders();
   } catch (err) {
     console.error(err);
@@ -573,9 +556,7 @@ async function onAddOrderSubmit(e) {
   }
 }
 
-
-
-/* ======================== УДАЛЕНИЕ ЗАЯВКИ ======================== */
+// ======================== УДАЛЕНИЕ ЗАЯВКИ ========================
 
 async function deleteOrder(id) {
   if (!id) return;
@@ -602,7 +583,7 @@ async function deleteOrder(id) {
   }
 }
 
-/* ======================== РЕДАКТИРОВАНИЕ ЗАЯВКИ ======================== */
+// ======================== РЕДАКТИРОВАНИЕ ЗАЯВКИ ========================
 
 function openEditModal(order) {
   editingOrderId = order._id;
@@ -626,6 +607,13 @@ function openEditModal(order) {
   }
 }
 
+function closeEditModal() {
+  const modal = document.getElementById("editModal");
+  if (modal) {
+    modal.classList.add("hidden");
+  }
+  editingOrderId = null;
+}
 
 async function onEditOrderSubmit(e) {
   e.preventDefault();
@@ -656,7 +644,7 @@ async function onEditOrderSubmit(e) {
     cargo,
     pricePerTon: price,
     distanceKm: distance,
-    comment,          // <-- тоже сохраняем
+    comment,
   };
 
   try {
@@ -681,8 +669,7 @@ async function onEditOrderSubmit(e) {
   }
 }
 
-
-/* ======================== ВЫГРУЗКА В CSV ======================== */
+// ======================== ВЫГРУЗКА В CSV ========================
 
 function downloadCsv(orders) {
   if (!orders || !orders.length) {
@@ -696,6 +683,7 @@ function downloadCsv(orders) {
     "Цена_Р_т",
     "Загрузка",
     "Выгрузка",
+    "Комментарий",
     "Расстояние_км",
     "lat_загрузка",
     "lon_загрузка",
@@ -709,6 +697,7 @@ function downloadCsv(orders) {
     o.pricePerTon != null ? o.pricePerTon : "",
     (o.from || "").replace(/;/g, ","),
     (o.to || "").replace(/;/g, ","),
+    (o.comment || "").replace(/;/g, ","),
     o.distanceKm != null ? o.distanceKm : "",
     o.lat != null ? o.lat : "",
     o.lon != null ? o.lon : "",
