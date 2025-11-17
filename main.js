@@ -454,57 +454,115 @@ function drawYandexRoute(order) {
 }
 
 /* ======================== ДОБАВЛЕНИЕ ЗАЯВКИ ======================== */
+// Геокодинг адреса через Яндекс.Карты: возвращает [lat, lon] или null
+async function geocodeAddress(address) {
+  if (!address || !window.ymaps) return null;
+
+  try {
+    const res = await ymaps.geocode(address, { results: 1 });
+    const firstGeo = res.geoObjects.get(0);
+    if (!firstGeo) return null;
+
+    const coords = firstGeo.geometry.getCoordinates(); // [lat, lon]
+    return coords;
+  } catch (err) {
+    console.error('Geocode error:', err);
+    return null;
+  }
+}
+
 
 async function onAddOrderSubmit(e) {
   e.preventDefault();
 
-  const fromInput     = document.getElementById("fromInput");     // текст "Загрузка"
-  const toInput       = document.getElementById("toInput");       // текст "Выгрузка"
-  const cargoInput    = document.getElementById("cargoInput");    // тип груза (текст)
-  const priceInput    = document.getElementById("priceInput");
-  const latInput      = document.getElementById("latInput");
-  const lonInput      = document.getElementById("lonInput");
-  const unloadLatInput= document.getElementById("unloadLatInput");
-  const unloadLonInput= document.getElementById("unloadLonInput");
+  // Поля формы
+  const fromInput        = document.getElementById('fromInput');
+  const toInput          = document.getElementById('toInput');
+  const cargoInput       = document.getElementById('cargoInput');
+  const priceInput       = document.getElementById('priceInput');
 
-  const from   = fromInput?.value.trim() || "";
-  const to     = toInput?.value.trim() || "";
-  const cargo  = cargoInput?.value.trim() || "";
+  const latInput         = document.getElementById('latInput');
+  const lonInput         = document.getElementById('lonInput');
+  const unloadLatInput   = document.getElementById('unloadLatInput');
+  const unloadLonInput   = document.getElementById('unloadLonInput');
+
+  const from   = fromInput?.value.trim()  || '';
+  const to     = toInput?.value.trim()    || '';
+  const cargo  = cargoInput?.value.trim() || '';
   const price  = Number(priceInput?.value) || 0;
-  const lat    = latInput?.value ? Number(latInput.value) : null;
-  const lon    = lonInput?.value ? Number(lonInput.value) : null;
-  const unloadLat = unloadLatInput?.value
-    ? Number(unloadLatInput.value)
-    : null;
-  const unloadLon = unloadLonInput?.value
-    ? Number(unloadLonInput.value)
-    : null;
 
   if (!from || !to || !cargo || !price) {
     alert('Заполните поля "Загрузка", "Выгрузка", "Груз" и "Цена".');
     return;
   }
 
-  if (
-    lat == null ||
-    lon == null ||
-    unloadLat == null ||
-    unloadLon == null
-  ) {
-    alert(
-      "Нужно задать координаты загрузки и выгрузки (клик по карте или через поиск)."
-    );
+  // Берём координаты из полей, если они уже есть
+  let lat       = latInput?.value       ? Number(latInput.value)       : null;
+  let lon       = lonInput?.value       ? Number(lonInput.value)       : null;
+  let unloadLat = unloadLatInput?.value ? Number(unloadLatInput.value) : null;
+  let unloadLon = unloadLonInput?.value ? Number(unloadLonInput.value) : null;
+
+  // --- 1. Если координат нет, геокодим адреса автоматически ---
+  if ((!lat || !lon) && window.ymaps) {
+    const coords = await geocodeAddress(from);
+    if (coords) {
+      lat = coords[0];
+      lon = coords[1];
+      if (latInput) latInput.value = lat.toFixed(6);
+      if (lonInput) lonInput.value = lon.toFixed(6);
+    }
+  }
+
+  if ((!unloadLat || !unloadLon) && window.ymaps) {
+    const coords = await geocodeAddress(to);
+    if (coords) {
+      unloadLat = coords[0];
+      unloadLon = coords[1];
+      if (unloadLatInput) unloadLatInput.value = unloadLat.toFixed(6);
+      if (unloadLonInput) unloadLonInput.value = unloadLon.toFixed(6);
+    }
+  }
+
+  // Если после геокодинга всё ещё нет координат — сдаёмся
+  if (lat == null || lon == null || unloadLat == null || unloadLon == null) {
+    alert('Нужно задать координаты загрузки и выгрузки. ' +
+          'Адрес не найден — попробуйте уточнить город/улицу/дом.');
     return;
   }
 
-  // сначала построим маршрут, чтобы взять расстояние
+  const fromCoords = [lat, lon];
+  const toCoords   = [unloadLat, unloadLon];
+
+  // --- 2. Строим маршрут и считаем расстояние ---
   let distanceKm = null;
-  try {
-    const route = await ymaps.route([[lat, lon], [unloadLat, unloadLon]]);
-    const meters = route.getLength(); // длина маршрута
-    distanceKm = Math.round(meters / 1000);
-  } catch (err) {
-    console.warn("Не получилось посчитать расстояние:", err);
+
+  if (window.ymaps && map) {
+    try {
+      const route = await ymaps.route([fromCoords, toCoords]);
+
+      // убираем старый маршрут
+      if (currentRoute) {
+        map.geoObjects.remove(currentRoute);
+      }
+      currentRoute = route;
+
+      const paths = route.getPaths();
+      paths.options.set({
+        strokeWidth: 4,
+        strokeColor: '#ff5500',
+        opacity: 0.85,
+      });
+      map.geoObjects.add(route);
+
+      const bounds = route.getBounds();
+      if (bounds) {
+        map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 30 });
+      }
+
+      distanceKm = Math.round(route.getLength() / 1000);
+    } catch (err) {
+      console.error('Route build error while adding order:', err);
+    }
   }
 
   const newOrder = {
@@ -519,38 +577,41 @@ async function onAddOrderSubmit(e) {
     unloadLon,
   };
 
+  // --- 3. Сохраняем заявку на сервере ---
   try {
-    const headers = { "Content-Type": "application/json" };
+    const headers = { 'Content-Type': 'application/json' };
     if (adminToken) {
-      headers["Authorization"] = "Bearer " + adminToken;
+      headers['Authorization'] = 'Bearer ' + adminToken;
     }
 
     const res = await fetch(`${API_BASE}/orders`, {
-      method: "POST",
+      method: 'POST',
       headers,
       body: JSON.stringify(newOrder),
     });
 
     if (!res.ok) {
-      throw new Error("Failed to create order");
+      throw new Error('Failed to create order');
     }
 
-    // очищаем форму
-    fromInput.value      = "";
-    toInput.value        = "";
-    cargoInput.value     = "";
-    priceInput.value     = "";
-    latInput.value       = "";
-    lonInput.value       = "";
-    unloadLatInput.value = "";
-    unloadLonInput.value = "";
+    // Чистим форму
+    fromInput.value = '';
+    toInput.value = '';
+    cargoInput.value = '';
+    priceInput.value = '';
+
+    if (latInput)       latInput.value = '';
+    if (lonInput)       lonInput.value = '';
+    if (unloadLatInput) unloadLatInput.value = '';
+    if (unloadLonInput) unloadLonInput.value = '';
 
     await loadOrders();
   } catch (err) {
     console.error(err);
-    alert("Не удалось добавить заявку.");
+    alert('Не удалось добавить заявку.');
   }
 }
+
 
 /* ======================== УДАЛЕНИЕ ЗАЯВКИ ======================== */
 
