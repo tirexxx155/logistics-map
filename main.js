@@ -367,7 +367,7 @@ function renderMarkers(orders) {
       : "";
 
     const normLine = order.norm
-      ? `<br/>Норма: ${order.norm}`
+      ? `<br/>Тип загрузки: ${order.norm}`
       : "";
 
     const volumeLine =
@@ -542,7 +542,7 @@ async function onAddOrderSubmit(e) {
   const comment = commentInput?.value.trim() || "";
 
   if (!from || !to || !cargo || !price || !norm) {
-    alert('Заполните поля "Загрузка", "Выгрузка", "Груз", "Цена" и "Норма".');
+    alert('Заполните поля "Загрузка", "Выгрузка", "Груз", "Цена" и "Тип загрузки".');
     return;
   }
 
@@ -754,8 +754,8 @@ function downloadCsv(orders) {
     "Цена_Р_т",
     "Загрузка",
     "Выгрузка",
-    "Норма",
-    "Объем_т",
+    "Тип_загрузки",
+    "Объем",
     "Комментарий",
     "Расстояние_км",
     "lat_загрузка",
