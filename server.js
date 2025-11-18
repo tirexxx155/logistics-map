@@ -43,6 +43,8 @@ const orderSchema = new mongoose.Schema(
     lon: Number,
     unloadLat: Number,
     unloadLon: Number,
+    norm: String,
+    volume: String,
     comment: String,          // <-- новое поле
   },
   { timestamps: true }

@@ -60,8 +60,8 @@
             </div>
         </div>
 
-        <!-- ДОБАВЛЕНИЕ ЗАЯВКИ -->
-       <div class="header-section add-order">
+       <!-- ДОБАВЛЕНИЕ ЗАЯВКИ -->
+<div class="header-section add-order">
   <h2>Добавить заявку</h2>
   <form id="addOrderForm">
     <div class="form-row">
@@ -85,9 +85,25 @@
         <input type="number" id="priceInput" required>
       </label>
 
+      <label>
+        Норма:
+        <select id="normInput" required>
+          <option value="">Выберите...</option>
+          <option value="По полной">По полной</option>
+          <option value="По норме">По норме</option>
+        </select>
+      </label>
+
+      <label>
+        Объём, т:
+        <input type="text" id="volumeInput" placeholder="2001т">
+      </label>
+    </div>
+
+    <div class="form-row">
       <label style="flex:1;">
         Комментарий:
-        <input type="text" id="commentInput" placeholder="Например: срочно, 25 т, нужен тент">
+        <input type="text" id="commentInput" placeholder="Например: срочно">
       </label>
     </div>
 
@@ -98,6 +114,7 @@
     <button type="submit" class="btn btn-primary">Добавить на карту</button>
   </form>
 </div>
+
 
   
 </div>
@@ -110,17 +127,20 @@
             <h2>Список заявок</h2>
             <table id="ordersTable">
     <thead>
-        <tr>
-            <th>ID</th>
-            <th>Груз</th>
-            <th>Цена, ₽/т</th>
-            <th>Загрузка</th>
-            <th>Выгрузка</th>
-            <th>Комментарий</th>
-            <th class="actions-header">Действия</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
+  <tr>
+    <th>ID</th>
+    <th>Груз</th>
+    <th>Цена, ₽/т</th>
+    <th>Загрузка</th>
+    <th>Выгрузка</th>
+    <th>Норма</th>
+    <th>Объём, т</th>
+    <th>Комментарий</th>
+    <th class="actions-header">Действия</th>
+  </tr>
+</thead>
+<tbody></tbody>
+
 </table>
 
         </aside>
@@ -141,9 +161,7 @@
         </div>
     </footer>
 
-    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ -->
-    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ -->
-<div id="editModal" class="modal hidden">
+   <div id="editModal" class="modal hidden">
   <div class="modal-backdrop"></div>
   <div class="modal-content">
     <h2>Редактировать заявку</h2>
@@ -175,6 +193,21 @@
           Расстояние, км:
           <input type="number" id="editDistanceInput">
         </label>
+        <label>
+          Норма:
+          <select id="editNormInput">
+            <option value="">Не задано</option>
+            <option value="По полной">По полной</option>
+            <option value="По норме">По норме</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>
+          Объём, т:
+          <input type="text" id="editVolumeInput">
+        </label>
         <label style="flex: 1;">
           Комментарий:
           <input type="text" id="editCommentInput" placeholder="Комментарий к заявке">
@@ -188,6 +221,7 @@
     </form>
   </div>
 </div>
+
 
 
     <!-- Яндекс.Карты -->

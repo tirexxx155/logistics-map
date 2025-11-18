@@ -1,28 +1,13 @@
-// ======================== НАСТРОЙКА API ========================
-
-// ЛОКАЛЬНО:
-//   - фронт (VS Code Live Server) → http://127.0.0.1:5500
-//   - сервер (Node/Express)      → http://localhost:5050
-//
-// ПРОД (Render):
-//   - всё на одном домене, API = /api
-
-let API_BASE;
-if (
+// Базовый адрес API (локально -> localhost, в интернете -> /api)
+const API_BASE =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
-) {
-  API_BASE = "http://localhost:5050/api";
-} else {
-  API_BASE = "/api";
-}
-console.log("API_BASE =", API_BASE);
-
-// ======================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ========================
+    ? "http://localhost:5050/api"
+    : "/api";
 
 let map;                 // ymaps.Map
 let markersLayer;        // ymaps.GeoObjectCollection
-let currentRoute = null; // ymaps.multiRouter.MultiRoute или route
+let currentRoute = null; // текущий маршрут (ymaps.route)
 
 let allOrders = [];
 let filteredOrders = [];
@@ -33,16 +18,16 @@ let editingOrderId = null;
 let isAdmin = false;
 let adminToken = null;
 
-// ======================== СТАРТ ПРИ ЗАГРУЗКЕ ========================
+/* ======================== СТАРТ ======================== */
 
 document.addEventListener("DOMContentLoaded", () => {
-  setupUi();
   initMap();
+  setupUi();
   restoreAdminState();
   loadOrders();
 });
 
-// ======================== ИНИЦИАЛИЗАЦИЯ КАРТЫ ========================
+/* ======================== КАРТА YANDEX ======================== */
 
 function initMap() {
   if (!window.ymaps) {
@@ -57,37 +42,46 @@ function initMap() {
       controls: ["zoomControl", "typeSelector", "fullscreenControl"],
     });
 
+    // Коллекция маркеров
     markersLayer = new ymaps.GeoObjectCollection();
     map.geoObjects.add(markersLayer);
+
+    // если данные уже загружены к этому моменту — отрисуем
+    if (allOrders.length) {
+      const data = filteredOrders.length ? filteredOrders : allOrders;
+      renderMarkers(data);
+    }
 
     refreshMapSize();
   });
 }
 
-// Подстроить карту под размер контейнера
+// подстроить карту под размер контейнера
 function refreshMapSize() {
   if (map && map.container && map.container.fitToViewport) {
     map.container.fitToViewport();
   }
 }
 
+// при изменении размера окна — тоже подстроить
 window.addEventListener("resize", refreshMapSize);
 
-// ======================== UI, КНОПКИ, ФОРМЫ ========================
+/* ======================== UI, КНОПКИ, ФОРМЫ ======================== */
 
 function setupUi() {
   const applyFilterBtn   = document.getElementById("applyFilter");
   const resetFilterBtn   = document.getElementById("resetFilter");
   const toggleSidebarBtn = document.getElementById("toggleSidebar");
   const toggleFormBtn    = document.getElementById("toggleForm");
-  const downloadCsvBtn   = document.getElementById("downloadCsvBtn");
   const addOrderForm     = document.getElementById("addOrderForm");
   const editOrderForm    = document.getElementById("editOrderForm");
   const editCancelBtn    = document.getElementById("editCancelBtn");
   const adminLoginBtn    = document.getElementById("adminLoginBtn");
 
   if (applyFilterBtn) {
-    applyFilterBtn.addEventListener("click", applyCurrentFilterAndRender);
+    applyFilterBtn.addEventListener("click", () => {
+      applyCurrentFilterAndRender();
+    });
   }
 
   if (resetFilterBtn) {
@@ -108,6 +102,7 @@ function setupUi() {
       toggleSidebarBtn.textContent = sidebar.classList.contains("hidden")
         ? "Показать список заявок"
         : "Свернуть список заявок";
+
       refreshMapSize();
     });
   }
@@ -120,15 +115,8 @@ function setupUi() {
       toggleFormBtn.textContent = addOrderSection.classList.contains("hidden")
         ? "Показать форму"
         : "Свернуть форму";
-      refreshMapSize();
-    });
-  }
 
-  if (downloadCsvBtn) {
-    downloadCsvBtn.addEventListener("click", () => {
-      const data =
-        filteredOrders && filteredOrders.length ? filteredOrders : allOrders;
-      downloadCsv(data);
+      refreshMapSize();
     });
   }
 
@@ -149,7 +137,7 @@ function setupUi() {
   }
 }
 
-// ======================== АДМИН-РЕЖИМ ========================
+/* ======================== АДМИН-РЕЖИМ ======================== */
 
 function restoreAdminState() {
   const stored = localStorage.getItem("adminToken");
@@ -164,32 +152,31 @@ function updateAdminUi() {
   const adminBtn        = document.getElementById("adminLoginBtn");
   const addOrderSection = document.querySelector(".add-order");
   const toggleFormBtn   = document.getElementById("toggleForm");
-  const actionsHeader   = document.querySelector(
-    "#ordersTable thead th:last-child"
-  );
+  const actionsHeader   = document.querySelector("#ordersTable thead th:last-child");
 
+  // текст на кнопке входа/выхода
   if (adminBtn) {
     adminBtn.textContent = isAdmin
       ? "Выйти из админ режима"
       : "Войти как админ";
   }
 
-  // форма добавления заявки
+  // форма добавления заявки видна только админу
   if (addOrderSection) {
     addOrderSection.style.display = isAdmin ? "" : "none";
   }
 
-  // кнопка "Свернуть форму"
+  // кнопка "Свернуть форму" только для админа
   if (toggleFormBtn) {
     toggleFormBtn.style.display = isAdmin ? "" : "none";
   }
 
-  // заголовок последнего столбца (Действия)
+  // заголовок столбца "Действия" (последний th)
   if (actionsHeader) {
     actionsHeader.style.display = isAdmin ? "" : "none";
   }
 
-  // последняя ячейка в каждой строке
+  // последняя ячейка в каждой строке таблицы
   const rows = document.querySelectorAll("#ordersTable tbody tr");
   rows.forEach((tr) => {
     const lastTd = tr.querySelector("td:last-child");
@@ -236,7 +223,7 @@ async function onAdminLoginClick() {
   }
 }
 
-// ======================== ЗАГРУЗКА ЗАЯВОК ========================
+/* ======================== ЗАГРУЗКА ЗАЯВОК ======================== */
 
 async function loadOrders() {
   try {
@@ -263,7 +250,7 @@ function updateTotalOrdersCounter(total) {
   }
 }
 
-// ======================== ФИЛЬТР + ОТРИСОВКА ========================
+/* ======================== ФИЛЬТР + ОТРИСОВКА ======================== */
 
 function applyCurrentFilterAndRender() {
   const cargoFilterEl = document.getElementById("cargoFilter");
@@ -286,7 +273,7 @@ function applyCurrentFilterAndRender() {
   renderMarkers(filteredOrders);
 }
 
-// ======================== ТАБЛИЦА ЗАЯВОК ========================
+/* ======================== ТАБЛИЦА ЗАЯВОК ======================== */
 
 function renderOrdersTable(orders) {
   const tbody = document.querySelector("#ordersTable tbody");
@@ -297,27 +284,28 @@ function renderOrdersTable(orders) {
   orders.forEach((order, index) => {
     const tr = document.createElement("tr");
 
-    const tdId       = document.createElement("td");
-    const tdCargo    = document.createElement("td");
-    const tdPrice    = document.createElement("td");
-    const tdFrom     = document.createElement("td");
-    const tdTo       = document.createElement("td");
-    const tdComment  = document.createElement("td");
-    const tdAct      = document.createElement("td");
+    const tdId      = document.createElement("td");
+    const tdCargo   = document.createElement("td");
+    const tdPrice   = document.createElement("td");
+    const tdFrom    = document.createElement("td");
+    const tdTo      = document.createElement("td");
+    const tdNorm    = document.createElement("td");
+    const tdVolume  = document.createElement("td");
+    const tdComment = document.createElement("td");
+    const tdAct     = document.createElement("td");
 
-    // 🔹 делаем столбец действий узким и настраиваемым по CSS
-    tdAct.classList.add("actions-cell");
-
-    tdId.textContent       = index + 1;
-    tdCargo.textContent    = order.cargo || "";
-    tdPrice.textContent    = order.pricePerTon != null ? order.pricePerTon : "";
-    tdFrom.textContent     = order.from || "";
-    tdTo.textContent       = order.to || "";
-    tdComment.textContent  = order.comment || "";
+    tdId.textContent      = index + 1;
+    tdCargo.textContent   = order.cargo || "";
+    tdPrice.textContent   = order.pricePerTon != null ? order.pricePerTon : "";
+    tdFrom.textContent    = order.from || "";
+    tdTo.textContent      = order.to || "";
+    tdNorm.textContent    = order.norm || "";
+    tdVolume.textContent  = order.volume != null ? order.volume : "";
+    tdComment.textContent = order.comment || "";
 
     if (isAdmin) {
       const editBtn = document.createElement("button");
-      editBtn.textContent = "Ред.";            // было "Редактировать"
+      editBtn.textContent = "Редактировать";
       editBtn.className = "edit-btn";
       editBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -325,7 +313,7 @@ function renderOrdersTable(orders) {
       });
 
       const delBtn = document.createElement("button");
-      delBtn.textContent = "Удал.";            // было "Удалить"
+      delBtn.textContent = "Удалить";
       delBtn.className = "delete-btn";
       delBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -334,6 +322,7 @@ function renderOrdersTable(orders) {
 
       tdAct.appendChild(editBtn);
       tdAct.appendChild(delBtn);
+      tdAct.classList.add("actions-cell");
     }
 
     tr.appendChild(tdId);
@@ -341,6 +330,8 @@ function renderOrdersTable(orders) {
     tr.appendChild(tdPrice);
     tr.appendChild(tdFrom);
     tr.appendChild(tdTo);
+    tr.appendChild(tdNorm);
+    tr.appendChild(tdVolume);
     tr.appendChild(tdComment);
     tr.appendChild(tdAct);
 
@@ -359,8 +350,7 @@ function renderOrdersTable(orders) {
   updateAdminUi();
 }
 
-
-// ======================== МАРКЕРЫ НА КАРТЕ ========================
+/* ======================== МАРКЕРЫ НА КАРТЕ ======================== */
 
 function renderMarkers(orders) {
   if (!markersLayer || !window.ymaps) return;
@@ -374,6 +364,15 @@ function renderMarkers(orders) {
       ? `<br/>Комментарий: ${order.comment}`
       : "";
 
+    const normLine = order.norm
+      ? `<br/>Норма: ${order.norm}`
+      : "";
+
+    const volumeLine =
+      order.volume != null
+        ? `<br/>Объём: ${order.volume}`
+        : "";
+
     const placemark = new ymaps.Placemark(
       [order.lat, order.lon],
       {
@@ -386,7 +385,7 @@ function renderMarkers(orders) {
           }<br/>
           Расстояние: ${
             order.distanceKm != null ? order.distanceKm + " км" : "-"
-          }${commentLine}
+          }${normLine}${volumeLine}${commentLine}
         `,
       },
       {
@@ -404,7 +403,7 @@ function renderMarkers(orders) {
   refreshMapSize();
 }
 
-// ======================== МАРШРУТ ПО ДОРОГЕ ========================
+/* ======================== МАРШРУТ ПО ДОРОГЕ ======================== */
 
 function drawYandexRoute(order) {
   if (!map || !window.ymaps) return;
@@ -434,7 +433,7 @@ function drawYandexRoute(order) {
       const paths = route.getPaths();
       paths.options.set({
         strokeWidth: 4,
-         strokeColor: "#51e00e", // тут можно менять цвет маршрута
+        strokeColor: "#51e00e", // зелёный маршрут
         opacity: 0.85,
       });
 
@@ -453,7 +452,7 @@ function drawYandexRoute(order) {
     });
 }
 
-// ======================== ГЕОКОДИНГ АДРЕСА ========================
+/* ======================== ГЕОКОДИНГ АДРЕСА ======================== */
 
 function geocodeAddress(address) {
   if (!window.ymaps) {
@@ -473,7 +472,7 @@ function geocodeAddress(address) {
     });
 }
 
-// ======================== ДОБАВЛЕНИЕ ЗАЯВКИ ========================
+/* ======================== ДОБАВЛЕНИЕ ЗАЯВКИ ======================== */
 
 async function onAddOrderSubmit(e) {
   e.preventDefault();
@@ -482,16 +481,20 @@ async function onAddOrderSubmit(e) {
   const toInput      = document.getElementById("toInput");
   const cargoInput   = document.getElementById("cargoInput");
   const priceInput   = document.getElementById("priceInput");
+  const normInput    = document.getElementById("normInput");
+  const volumeInput  = document.getElementById("volumeInput");
   const commentInput = document.getElementById("commentInput");
 
   const from    = fromInput?.value.trim() || "";
   const to      = toInput?.value.trim() || "";
   const cargo   = cargoInput?.value.trim() || "";
   const price   = Number(priceInput?.value) || 0;
+  const norm    = normInput?.value.trim() || "";
+  const volume  = volumeInput?.value.trim() || "";
   const comment = commentInput?.value.trim() || "";
 
-  if (!from || !to || !cargo || !price) {
-    alert('Заполните поля "Загрузка", "Выгрузка", "Груз" и "Цена".');
+  if (!from || !to || !cargo || !price || !norm) {
+    alert('Заполните поля "Загрузка", "Выгрузка", "Груз", "Цена" и "Норма".');
     return;
   }
 
@@ -525,6 +528,8 @@ async function onAddOrderSubmit(e) {
       lon: fromCoords[1],
       unloadLat: toCoords[0],
       unloadLon: toCoords[1],
+      norm,
+      volume,
       comment,
     };
 
@@ -547,6 +552,8 @@ async function onAddOrderSubmit(e) {
     toInput.value      = "";
     cargoInput.value   = "";
     priceInput.value   = "";
+    if (normInput)   normInput.value   = "";
+    if (volumeInput) volumeInput.value = "";
     if (commentInput) commentInput.value = "";
 
     await loadOrders();
@@ -556,7 +563,7 @@ async function onAddOrderSubmit(e) {
   }
 }
 
-// ======================== УДАЛЕНИЕ ЗАЯВКИ ========================
+/* ======================== УДАЛЕНИЕ ЗАЯВКИ ======================== */
 
 async function deleteOrder(id) {
   if (!id) return;
@@ -583,18 +590,28 @@ async function deleteOrder(id) {
   }
 }
 
-// ======================== РЕДАКТИРОВАНИЕ ЗАЯВКИ ========================
+/* ======================== РЕДАКТИРОВАНИЕ ЗАЯВКИ ======================== */
 
 function openEditModal(order) {
   editingOrderId = order._id;
 
-  document.getElementById("editFromInput").value    = order.from || "";
-  document.getElementById("editToInput").value      = order.to || "";
-  document.getElementById("editCargoInput").value   = order.cargo || "";
-  document.getElementById("editPriceInput").value   =
+  document.getElementById("editFromInput").value   = order.from || "";
+  document.getElementById("editToInput").value     = order.to || "";
+  document.getElementById("editCargoInput").value  = order.cargo || "";
+  document.getElementById("editPriceInput").value  =
     order.pricePerTon != null ? order.pricePerTon : "";
   document.getElementById("editDistanceInput").value =
     order.distanceKm != null ? order.distanceKm : "";
+
+  const editNormInput = document.getElementById("editNormInput");
+  if (editNormInput) {
+    editNormInput.value = order.norm || "";
+  }
+
+  const editVolumeInput = document.getElementById("editVolumeInput");
+  if (editVolumeInput) {
+    editVolumeInput.value = order.volume != null ? order.volume : "";
+  }
 
   const editCommentInput = document.getElementById("editCommentInput");
   if (editCommentInput) {
@@ -624,6 +641,8 @@ async function onEditOrderSubmit(e) {
   const cargoInput     = document.getElementById("editCargoInput");
   const priceInput     = document.getElementById("editPriceInput");
   const distanceInput  = document.getElementById("editDistanceInput");
+  const normInput      = document.getElementById("editNormInput");
+  const volumeInput    = document.getElementById("editVolumeInput");
   const commentInput   = document.getElementById("editCommentInput");
 
   const from     = fromInput.value.trim();
@@ -631,6 +650,8 @@ async function onEditOrderSubmit(e) {
   const cargo    = cargoInput.value.trim();
   const price    = Number(priceInput.value) || 0;
   const distance = distanceInput.value ? Number(distanceInput.value) : null;
+  const norm     = normInput ? normInput.value.trim() : "";
+    const volume   = volumeInput ? volumeInput.value.trim() : "";
   const comment  = commentInput ? commentInput.value.trim() : "";
 
   if (!from || !to || !cargo || !price) {
@@ -644,6 +665,8 @@ async function onEditOrderSubmit(e) {
     cargo,
     pricePerTon: price,
     distanceKm: distance,
+    norm,
+    volume,
     comment,
   };
 
@@ -669,7 +692,7 @@ async function onEditOrderSubmit(e) {
   }
 }
 
-// ======================== ВЫГРУЗКА В CSV ========================
+/* ======================== ВЫГРУЗКА В CSV ======================== */
 
 function downloadCsv(orders) {
   if (!orders || !orders.length) {
@@ -683,6 +706,8 @@ function downloadCsv(orders) {
     "Цена_Р_т",
     "Загрузка",
     "Выгрузка",
+    "Норма",
+    "Объем_т",
     "Комментарий",
     "Расстояние_км",
     "lat_загрузка",
@@ -697,6 +722,8 @@ function downloadCsv(orders) {
     o.pricePerTon != null ? o.pricePerTon : "",
     (o.from || "").replace(/;/g, ","),
     (o.to || "").replace(/;/g, ","),
+    o.norm || "",
+    o.volume != null ? o.volume : "",
     (o.comment || "").replace(/;/g, ","),
     o.distanceKm != null ? o.distanceKm : "",
     o.lat != null ? o.lat : "",
