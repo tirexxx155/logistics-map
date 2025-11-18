@@ -509,3 +509,16 @@ body {
     padding: 1px 4px;
     margin: 1px 0;
 }
+/* Ручка между таблицей и картой */
+.sidebar-resizer {
+    flex: 0 0 4px;                 /* ширина полоски */
+    background: #e5e7eb;
+    border-right: 1px solid #d1d5db;
+    cursor: col-resize;
+}
+
+/* Во время перетаскивания отключаем выделение текста и меняем курсор */
+body.sidebar-resize-active {
+    cursor: col-resize;
+    user-select: none;
+}

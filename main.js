@@ -24,8 +24,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initMap();
   setupUi();
   restoreAdminState();
+  initSidebarResizer();   // <-- новая строка
   loadOrders();
 });
+
 
 /* ======================== КАРТА YANDEX ======================== */
 
@@ -401,6 +403,52 @@ function renderMarkers(orders) {
   });
 
   refreshMapSize();
+}
+// подстроить карту под размер контейнера
+function refreshMapSize() {
+  if (map && map.container && map.container.fitToViewport) {
+    map.container.fitToViewport();
+  }
+}
+
+// Ресайз сайдбара мышкой
+function initSidebarResizer() {
+  const sidebar = document.getElementById("sidebar");
+  const resizer = document.getElementById("sidebarResizer");
+  const layout  = document.getElementById("layout");
+
+  if (!sidebar || !resizer || !layout) return;
+
+  let isDragging = false;
+  const MIN_WIDTH = 160; // минимальная ширина таблицы, px
+  const MAX_WIDTH = 1000; // максимальная ширина таблицы, px
+
+  resizer.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    isDragging = true;
+    document.body.classList.add("sidebar-resize-active");
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+
+    const layoutRect = layout.getBoundingClientRect();
+    let newWidth = e.clientX - layoutRect.left;
+
+    if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH;
+    if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH;
+
+    sidebar.style.width = newWidth + "px";
+    sidebar.style.maxWidth = "none"; // чтобы не упиралось в старый max-width
+
+    refreshMapSize();
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (!isDragging) return;
+    isDragging = false;
+    document.body.classList.remove("sidebar-resize-active");
+  });
 }
 
 /* ======================== МАРШРУТ ПО ДОРОГЕ ======================== */
