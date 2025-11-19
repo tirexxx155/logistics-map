@@ -43,7 +43,15 @@ function initMap() {
       zoom: 6,
       controls: ["zoomControl", "typeSelector", "fullscreenControl"],
     });
-
+// Подсказки адресов для полей "Загрузка" и "Выгрузка"
+    const fromInput = document.getElementById("fromInput");
+    const toInput   = document.getElementById("toInput");
+    if (fromInput) {
+      new ymaps.SuggestView("fromInput");
+    }
+    if (toInput) {
+      new ymaps.SuggestView("toInput");
+    }
     // Коллекция маркеров
     markersLayer = new ymaps.GeoObjectCollection();
     map.geoObjects.add(markersLayer);
@@ -87,14 +95,19 @@ function setupUi() {
   }
 
   if (resetFilterBtn) {
-    resetFilterBtn.addEventListener("click", () => {
-      const cargoFilter = document.getElementById("cargoFilter");
-      const minPrice    = document.getElementById("minPrice");
-      if (cargoFilter) cargoFilter.value = "";
-      if (minPrice)    minPrice.value    = "";
-      applyCurrentFilterAndRender();
-    });
-  }
+  resetFilterBtn.addEventListener("click", () => {
+    const cargoFilter = document.getElementById("cargoFilter");
+    const minPrice    = document.getElementById("minPrice");
+    const typeFilter  = document.getElementById("typeFilter"); // ← новый
+
+    if (cargoFilter) cargoFilter.value = "";
+    if (minPrice)    minPrice.value    = "";
+    if (typeFilter)  typeFilter.value  = ""; // ← очищаем тип загрузки
+
+    applyCurrentFilterAndRender();
+  });
+}
+
 
   if (toggleSidebarBtn) {
     toggleSidebarBtn.addEventListener("click", () => {
@@ -257,9 +270,11 @@ function updateTotalOrdersCounter(total) {
 function applyCurrentFilterAndRender() {
   const cargoFilterEl = document.getElementById("cargoFilter");
   const minPriceEl    = document.getElementById("minPrice");
-
+const typeFilterEl = document.getElementById("typeFilter");
   const cargoFilter = cargoFilterEl ? cargoFilterEl.value.trim() : "";
   const minPrice    = minPriceEl ? Number(minPriceEl.value) || 0 : 0;
+    
+const typeFilter = typeFilterEl ? typeFilterEl.value.trim() : "";
 
   filteredOrders = allOrders.filter((order) => {
     if (cargoFilter && order.cargo !== cargoFilter) {
@@ -267,7 +282,14 @@ function applyCurrentFilterAndRender() {
     }
     if (minPrice && Number(order.pricePerTon || 0) < minPrice) {
       return false;
+      
     }
+    if (typeFilter && order.norm !== typeFilter) {
+    return false;
+}
+
+  
+
     return true;
   });
 
@@ -285,6 +307,10 @@ function renderOrdersTable(orders) {
 
   orders.forEach((order, index) => {
     const tr = document.createElement("tr");
+    // привязываем строку к id заявки из MongoDB
+    if (order._id) {
+      tr.dataset.orderId = order._id;
+    }
 
     const tdId      = document.createElement("td");
     const tdCargo   = document.createElement("td");
@@ -338,7 +364,13 @@ function renderOrdersTable(orders) {
     tr.appendChild(tdAct);
 
     // клик по строке — центрируем карту и строим маршрут
-    tr.addEventListener("click", () => {
+     tr.addEventListener("click", () => {
+      // подсветить эту строку
+      if (order._id) {
+        highlightOrderRow(order._id);
+      }
+
+      // центрировать карту и показать маршрут
       if (map && order.lat != null && order.lon != null && window.ymaps) {
         map.setCenter([order.lat, order.lon], 7, { duration: 300 });
       }
@@ -350,6 +382,25 @@ function renderOrdersTable(orders) {
 
   // после перерисовки таблицы обновляем отображение для админа/не-админа
   updateAdminUi();
+}
+// ======================== ПОДСВЕТКА СТРОКИ В ТАБЛИЦЕ ========================
+
+function highlightOrderRow(orderId) {
+  const rows = document.querySelectorAll("#ordersTable tbody tr");
+
+  // снимаем выделение со всех строк
+  rows.forEach(tr => tr.classList.remove("row-selected"));
+
+  // ищем строку с нужным data-order-id
+  const target = document.querySelector(
+    `#ordersTable tbody tr[data-order-id="${orderId}"]`
+  );
+
+  if (target) {
+    target.classList.add("row-selected");
+    // плавно прокручиваем список, чтобы заявка попала в зону видимости
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 }
 
 /* ======================== МАРКЕРЫ НА КАРТЕ ======================== */
@@ -395,9 +446,16 @@ function renderMarkers(orders) {
       }
     );
 
-    placemark.events.add("click", () => {
+        placemark.events.add("click", () => {
+      // подсветить строку в таблице
+      if (order._id) {
+        highlightOrderRow(order._id);
+      }
+
+      // построить маршрут
       drawYandexRoute(order);
     });
+
 
     markersLayer.add(placemark);
   });

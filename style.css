@@ -522,3 +522,7 @@ body.sidebar-resize-active {
     cursor: col-resize;
     user-select: none;
 }
+/* Подсветка выбранной строки заявки */
+#ordersTable tbody tr.row-selected {
+    background: #dbeafe !important;  /* нежно-синий */
+}

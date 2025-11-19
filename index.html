@@ -48,6 +48,14 @@
                     Мин. цена, ₽/т:
                     <input type="number" id="minPrice" placeholder="0">
                 </label>
+    <label>
+        Тип загрузки:
+        <select id="typeFilter">
+            <option value="">Все</option>
+            <option value="По полной">По полной</option>
+            <option value="По норме">По норме</option>
+        </select>
+    </label>
 
                 <button id="applyFilter" class="btn btn-primary">Применить фильтр</button>
                 <button id="resetFilter" class="btn btn-ghost">Сбросить</button>
@@ -226,7 +234,7 @@
 
     <!-- Яндекс.Карты -->
    <script
-  src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=62753f37-5d60-4eb1-a984-4c93875e6942&suggest_apikey=62753f37-5d60-4eb1-a984-4c93875e6942"
+  src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=62753f37-5d60-4eb1-a984-4c93875e6942&suggest_apikey=62753f37-5d60-4eb1-a984-4c93875e6942&load=package.full"
   type="text/javascript">
 </script>
 
