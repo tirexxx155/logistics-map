@@ -113,7 +113,7 @@ const Driver = mongoose.model('Driver', driverSchema);
 // ------------ TELEGRAM ИНТЕГРАЦИЯ ------------
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8588186081:AAEgiznswcPK0UIkEgBKTs-NY_wL1nfK6CI';
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-5048591982';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1003225004952';
 
 // Функция для отправки сообщений в Telegram
 async function sendToTelegram(message) {
@@ -379,11 +379,34 @@ app.post('/api/schedule', requireAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/schedule/:id — обновить назначение (только админ)
-app.put('/api/schedule/:id', requireAdmin, async (req, res) => {
+// PUT /api/schedule/:id — обновить назначение
+// Обновление shippedTons доступно всем, остальные поля - только админу
+app.put('/api/schedule/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const oldItem = await ScheduleItem.findById(id).populate('orderId');
+    if (!oldItem) {
+      return res.status(404).json({ message: 'Назначение не найдено' });
+    }
+    
+    // Проверяем, что пользователь пытается изменить только shippedTons и logistician
+    // Если пытается изменить другие поля - требуется авторизация админа
+    const isOnlyShippingUpdate = Object.keys(req.body).every(key => 
+      key === 'shippedTons' || key === 'logistician'
+    );
+    
+    if (!isOnlyShippingUpdate) {
+      // Если пытается изменить другие поля, проверяем авторизацию админа
+      const authHeader = req.headers['authorization'] || req.headers['Authorization'] || '';
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+      const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || 'admin123').trim();
+      const adminToken = require('crypto').createHash('sha256').update(ADMIN_PASSWORD).digest('hex');
+      
+      if (!token || token !== adminToken) {
+        return res.status(401).json({ message: 'Только администратор может изменять назначение' });
+      }
+    }
+    
     const updated = await ScheduleItem.findByIdAndUpdate(id, req.body, { new: true })
       .populate('orderId');
     if (!updated) {
@@ -427,7 +450,7 @@ app.put('/api/schedule/:id', requireAdmin, async (req, res) => {
           `Куда: ${order.to || 'Не указано'}\n` +
           `Отправлено: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т`);
       } else {
-        await sendToTelegram(`🚚 <b>Отправка тонн</b>\n\n` +
+        await sendToTelegram(`🚚 <b>Отправил груз</b>\n\n` +
           `Логист: ${logistician || 'Не указан'}\n` +
           `Дата: ${loadingDate}\n` +
           `Груз: ${order.cargo || 'Не указан'}\n` +

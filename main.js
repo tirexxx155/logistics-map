@@ -546,12 +546,20 @@ async function onEditScheduleSubmit(e) {
 
   if (!dateInput || !tonsInput) return;
 
-  const loadingDate = new Date(dateInput.value);
+  // Создаем дату в локальном времени (начало дня)
+  const dateValue = dateInput.value; // формат: YYYY-MM-DD
+  const [year, month, day] = dateValue.split('-').map(Number);
+  const loadingDate = new Date(year, month - 1, day, 12, 0, 0); // 12:00 для избежания проблем с часовыми поясами
   const requiredTons = Number(tonsInput.value) || 0;
   const comment = commentInput ? commentInput.value.trim() : "";
 
   if (requiredTons <= 0) {
     alert("Укажите количество тонн больше нуля");
+    return;
+  }
+
+  if (!dateValue) {
+    alert("Укажите дату загрузки");
     return;
   }
 
@@ -587,6 +595,11 @@ async function onEditScheduleSubmit(e) {
     // Перезагружаем расписание
     await loadSchedule();
     await loadActivities();
+    
+    // Обновляем календарь
+    if (window.renderCalendar) {
+      window.renderCalendar();
+    }
 
     // Обновляем модальное окно дня, если оно открыто
     const dayModal = document.getElementById("dayOrdersModal");
@@ -643,12 +656,20 @@ async function onAssignOrderSubmit(e) {
 
   if (!dateInput || !tonsInput) return;
 
-  const loadingDate = new Date(dateInput.value);
+  // Создаем дату в локальном времени (начало дня)
+  const dateValue = dateInput.value; // формат: YYYY-MM-DD
+  const [year, month, day] = dateValue.split('-').map(Number);
+  const loadingDate = new Date(year, month - 1, day, 12, 0, 0); // 12:00 для избежания проблем с часовыми поясами
   const requiredTons = Number(tonsInput.value) || 0;
   const comment = commentInput ? commentInput.value.trim() : "";
 
   if (requiredTons <= 0) {
     alert("Укажите количество тонн больше нуля");
+    return;
+  }
+
+  if (!dateValue) {
+    alert("Укажите дату загрузки");
     return;
   }
 
@@ -687,9 +708,15 @@ async function onAssignOrderSubmit(e) {
     await loadSchedule();
     // Перезагружаем активность
     await loadActivities();
+    
+    // Обновляем календарь
+    if (window.renderCalendar) {
+      window.renderCalendar();
+    }
   } catch (err) {
     console.error("Ошибка при назначении заявки:", err);
-    alert("Не удалось назначить заявку на дату. См. консоль.");
+    const errorText = err.message || "Неизвестная ошибка";
+    alert(`Не удалось назначить заявку на дату: ${errorText}. См. консоль.`);
   }
 }
 
@@ -1396,10 +1423,15 @@ function initCalendar() {
             // Подсчитываем общий объем
             let totalRequiredTons = 0;
             let totalShippedTons = 0;
+            let completedCount = 0; // Счетчик выполненных заявок
             
             dayScheduleItems.forEach(item => {
               totalRequiredTons += item.requiredTons || 0;
               totalShippedTons += item.shippedTons || 0;
+              // Проверяем, выполнена ли заявка (отправлено >= необходимо)
+              if ((item.shippedTons || 0) >= (item.requiredTons || 0) && (item.requiredTons || 0) > 0) {
+                completedCount++;
+              }
             });
 
             // Показываем информацию о заявках
@@ -1409,6 +1441,7 @@ function initCalendar() {
               <div class="calendar-orders-count">${dayScheduleItems.length} заявок</div>
               ${totalRequiredTons > 0 ? `<div class="calendar-orders-volume">${totalRequiredTons} т</div>` : ''}
               ${totalShippedTons > 0 ? `<div class="calendar-orders-shipped">Отправлено: ${totalShippedTons} т</div>` : ''}
+              ${completedCount > 0 ? `<div class="calendar-orders-completed">✅ Выполнено: ${completedCount} из ${dayScheduleItems.length}</div>` : ''}
             `;
             dayContainer.appendChild(ordersInfo);
 
@@ -1440,13 +1473,20 @@ function initCalendar() {
   window.getScheduleItemsForDate = function(date) {
     if (!scheduleItems || scheduleItems.length === 0) return [];
     
-    const targetDateStr = date.toISOString().split('T')[0];
+    // Нормализуем целевую дату (начало дня в локальном времени)
+    const targetYear = date.getFullYear();
+    const targetMonth = date.getMonth();
+    const targetDay = date.getDate();
     
     return scheduleItems.filter(item => {
       if (!item.loadingDate) return false;
       const itemDate = new Date(item.loadingDate);
-      const itemDateStr = itemDate.toISOString().split('T')[0];
-      return itemDateStr === targetDateStr;
+      const itemYear = itemDate.getFullYear();
+      const itemMonth = itemDate.getMonth();
+      const itemDay = itemDate.getDate();
+      
+      // Сравниваем год, месяц и день
+      return itemYear === targetYear && itemMonth === targetMonth && itemDay === targetDay;
     });
   };
 
@@ -1567,9 +1607,16 @@ function initCalendar() {
             ${item.comment ? `<div class="schedule-comment"><strong>Комментарий к загрузке:</strong> ${item.comment}</div>` : ''}
           </div>
           <div class="day-orders-item-footer">
-            <button type="button" class="btn btn-primary ship-tons-btn" data-schedule-id="${itemId}">
-              Отправить
-            </button>
+            <div class="day-orders-item-actions">
+              ${isAdmin ? `
+                <button type="button" class="btn btn-ghost small delete-schedule-btn" data-schedule-id="${itemId}" style="background: #fee2e2; color: #991b1b;">
+                  Удалить
+                </button>
+              ` : ''}
+              <button type="button" class="btn btn-primary ship-tons-btn" data-schedule-id="${itemId}">
+                Отправить
+              </button>
+            </div>
           </div>
         </div>`;
       });
@@ -1662,6 +1709,25 @@ function initCalendar() {
         });
       });
 
+      // Обработчики для кнопки удаления (только для админа)
+      if (isAdmin) {
+        const deleteScheduleBtns = list.querySelectorAll('.delete-schedule-btn');
+        deleteScheduleBtns.forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const scheduleId = e.target.dataset.scheduleId;
+            if (!scheduleId) return;
+            
+            if (!confirm("Удалить заявку на загрузку из календаря?")) {
+              return;
+            }
+            
+            await deleteSchedule(scheduleId, date);
+          });
+        });
+      }
+
+      // Обработчики для кнопки отправки (доступны всем)
       const shipTonsBtns = list.querySelectorAll('.ship-tons-btn');
       shipTonsBtns.forEach(btn => {
         btn.addEventListener('click', async (e) => {
@@ -1721,13 +1787,11 @@ function initCalendar() {
     }
   }
 
-  // Функция для обновления отправленных тонн
+  // Функция для обновления отправленных тонн (доступна всем)
   async function updateShippedTons(scheduleId, shippedTons, logistician = '') {
     try {
       const headers = { "Content-Type": "application/json" };
-      if (adminToken) {
-        headers["Authorization"] = "Bearer " + adminToken;
-      }
+      // Авторизация не требуется для отправки груза
 
       const updateData = { shippedTons };
       if (logistician) {
@@ -1791,6 +1855,64 @@ function initCalendar() {
       if (err.message && !err.message.includes('loadSchedule') && !err.message.includes('loadActivities')) {
         alert("Не удалось обновить отправленные тонны. См. консоль.");
       }
+    }
+  }
+
+  // Функция для удаления заявки на загрузку из календаря
+  async function deleteSchedule(scheduleId, date) {
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (adminToken) {
+        headers["Authorization"] = "Bearer " + adminToken;
+      }
+
+      const res = await fetch(`${API_BASE}/schedule/${scheduleId}`, {
+        method: "DELETE",
+        headers,
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete schedule item");
+      }
+
+      // Перезагружаем расписание и обновляем календарь
+      try {
+        await loadSchedule();
+      } catch (e) {
+        console.warn("Ошибка при перезагрузке расписания (не критично):", e);
+      }
+      
+      // Перезагружаем активность
+      try {
+        await loadActivities();
+      } catch (e) {
+        console.warn("Ошибка при перезагрузке активности (не критично):", e);
+      }
+      
+      // Обновляем модальное окно, если оно открыто
+      try {
+        const modal = document.getElementById("dayOrdersModal");
+        if (modal && !modal.classList.contains("hidden")) {
+          const dayScheduleItems = window.getScheduleItemsForDate ? window.getScheduleItemsForDate(date) : [];
+          if (dayScheduleItems.length === 0) {
+            // Если заявок не осталось, закрываем модальное окно
+            modal.classList.add("hidden");
+          } else {
+            // Иначе обновляем содержимое
+            showDayOrdersModal(date, dayScheduleItems);
+          }
+        }
+      } catch (e) {
+        console.warn("Ошибка при обновлении модального окна (не критично):", e);
+      }
+      
+      // Обновляем календарь
+      if (window.renderCalendar) {
+        window.renderCalendar();
+      }
+    } catch (err) {
+      console.error("Ошибка при удалении заявки на загрузку:", err);
+      alert("Не удалось удалить заявку на загрузку. См. консоль.");
     }
   }
 

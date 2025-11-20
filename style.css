@@ -898,6 +898,13 @@ body.sidebar-resize-active {
     font-size: 10px;
 }
 
+.calendar-orders-completed {
+    color: #059669;
+    font-weight: 600;
+    margin-top: 2px;
+    font-size: 10px;
+}
+
 /* Стили для модального окна дня - обновленные */
 .day-orders-item-actions {
     display: flex;
