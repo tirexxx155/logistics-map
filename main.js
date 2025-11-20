@@ -1499,6 +1499,17 @@ function initCalendar() {
 
     if (!modal || !title || !list) return;
 
+    // Обновляем состояние админа из localStorage перед рендерингом
+    // Это важно для production, где состояние может не синхронизироваться
+    const storedToken = localStorage.getItem("adminToken");
+    if (storedToken && !isAdmin) {
+      isAdmin = true;
+      adminToken = storedToken;
+    } else if (!storedToken && isAdmin) {
+      isAdmin = false;
+      adminToken = null;
+    }
+
     const dateStr = date.toLocaleDateString("ru-RU", {
       day: "numeric",
       month: "long",
@@ -1625,6 +1636,9 @@ function initCalendar() {
 
       list.innerHTML = html;
 
+      // Сохраняем актуальные данные в локальной переменной для использования в обработчиках
+      const currentScheduleItems = scheduleItemsForDay;
+
       // Добавляем обработчики для редактирования необходимых тонн (инлайн)
       if (isAdmin) {
         const requiredTonsInputs = list.querySelectorAll('.required-tons-input');
@@ -1634,7 +1648,7 @@ function initCalendar() {
             const newRequiredTons = parseFloat(e.target.value) || 0;
             if (newRequiredTons <= 0) {
               alert("Количество тонн должно быть больше нуля");
-              const item = scheduleItemsForDay.find(item => item._id === scheduleId);
+              const item = currentScheduleItems.find(item => item._id === scheduleId);
               e.target.value = (item?.requiredTons || 0).toFixed(2);
               return;
             }
@@ -1650,7 +1664,7 @@ function initCalendar() {
             
             const newRequiredTons = parseFloat(e.target.value) || 0;
             const shippedTons = shippedTonsInput ? parseFloat(shippedTonsInput.value) || 0 : 0;
-            const currentShipped = scheduleItemsForDay.find(item => item._id === scheduleId)?.shippedTons || 0;
+            const currentShipped = currentScheduleItems.find(item => item._id === scheduleId)?.shippedTons || 0;
             const totalShipped = shippedTons > 0 ? shippedTons : currentShipped;
             const remaining = newRequiredTons - totalShipped;
             
@@ -1667,7 +1681,7 @@ function initCalendar() {
           input.addEventListener('change', async (e) => {
             const scheduleId = e.target.dataset.scheduleId;
             const newRemaining = parseFloat(e.target.value) || 0;
-            const item = scheduleItemsForDay.find(item => item._id === scheduleId);
+            const item = currentScheduleItems.find(item => item._id === scheduleId);
             if (!item) return;
             
             const requiredTons = item.requiredTons || 0;
@@ -1697,8 +1711,8 @@ function initCalendar() {
           
           const shippedTons = parseFloat(e.target.value) || 0;
           const requiredTons = requiredTonsInput ? parseFloat(requiredTonsInput.value) || 0 : 
-                               (scheduleItemsForDay.find(item => item._id === scheduleId)?.requiredTons || 0);
-          const currentShipped = scheduleItemsForDay.find(item => item._id === scheduleId)?.shippedTons || 0;
+                               (currentScheduleItems.find(item => item._id === scheduleId)?.requiredTons || 0);
+          const currentShipped = currentScheduleItems.find(item => item._id === scheduleId)?.shippedTons || 0;
           const totalShipped = shippedTons > 0 ? (currentShipped + shippedTons) : currentShipped;
           const remaining = requiredTons - totalShipped;
           
@@ -1750,7 +1764,7 @@ function initCalendar() {
           }
           
           // Получаем текущее значение отправленных тонн и добавляем новое
-          const currentItem = scheduleItemsForDay.find(item => item._id === scheduleId);
+          const currentItem = currentScheduleItems.find(item => item._id === scheduleId);
           const currentShippedTons = currentItem?.shippedTons || 0;
           const newTotalShippedTons = currentShippedTons + shippedTons;
           
