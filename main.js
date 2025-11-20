@@ -1741,39 +1741,56 @@ function initCalendar() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to update shipped tons");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to update shipped tons");
       }
 
       // Перезагружаем расписание и обновляем календарь
-      await loadSchedule();
+      try {
+        await loadSchedule();
+      } catch (e) {
+        console.warn("Ошибка при перезагрузке расписания (не критично):", e);
+      }
+      
       // Перезагружаем активность
-      await loadActivities();
+      try {
+        await loadActivities();
+      } catch (e) {
+        console.warn("Ошибка при перезагрузке активности (не критично):", e);
+      }
       
       // Обновляем модальное окно, если оно открыто
-      const modal = document.getElementById("dayOrdersModal");
-      if (modal && !modal.classList.contains("hidden")) {
-        // Находим текущую дату из заголовка
-        const title = document.getElementById("dayOrdersTitle");
-        if (title) {
-          // Парсим дату из заголовка и переоткрываем модальное окно
-          const dateMatch = title.textContent.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
-          if (dateMatch) {
-            const day = parseInt(dateMatch[1]);
-            const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня",
-                               "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-            const month = monthNames.indexOf(dateMatch[2].toLowerCase());
-            const year = parseInt(dateMatch[3]);
-            if (month !== -1) {
-              const date = new Date(year, month, day);
-              const dayScheduleItems = window.getScheduleItemsForDate ? window.getScheduleItemsForDate(date) : [];
-              showDayOrdersModal(date, dayScheduleItems);
+      try {
+        const modal = document.getElementById("dayOrdersModal");
+        if (modal && !modal.classList.contains("hidden")) {
+          // Находим текущую дату из заголовка
+          const title = document.getElementById("dayOrdersTitle");
+          if (title) {
+            // Парсим дату из заголовка и переоткрываем модальное окно
+            const dateMatch = title.textContent.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+            if (dateMatch) {
+              const day = parseInt(dateMatch[1]);
+              const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня",
+                                 "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+              const month = monthNames.indexOf(dateMatch[2].toLowerCase());
+              const year = parseInt(dateMatch[3]);
+              if (month !== -1) {
+                const date = new Date(year, month, day);
+                const dayScheduleItems = window.getScheduleItemsForDate ? window.getScheduleItemsForDate(date) : [];
+                showDayOrdersModal(date, dayScheduleItems);
+              }
             }
           }
         }
+      } catch (e) {
+        console.warn("Ошибка при обновлении модального окна (не критично):", e);
       }
     } catch (err) {
       console.error("Ошибка при обновлении отправленных тонн:", err);
-      alert("Не удалось обновить отправленные тонны. См. консоль.");
+      // Показываем alert только при реальной ошибке сервера
+      if (err.message && !err.message.includes('loadSchedule') && !err.message.includes('loadActivities')) {
+        alert("Не удалось обновить отправленные тонны. См. консоль.");
+      }
     }
   }
 

@@ -112,8 +112,8 @@ const Driver = mongoose.model('Driver', driverSchema);
 
 // ------------ TELEGRAM ИНТЕГРАЦИЯ ------------
 
-const TELEGRAM_BOT_TOKEN = process.env.8588186081:AAEgiznswcPK0UIkEgBKTs-NY_wL1nfK6CI || '';
-const TELEGRAM_CHAT_ID = process.env.-5048591982 || '';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8588186081:AAEgiznswcPK0UIkEgBKTs-NY_wL1nfK6CI';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-5048591982';
 
 // Функция для отправки сообщений в Telegram
 async function sendToTelegram(message) {
@@ -162,7 +162,9 @@ async function sendToTelegram(message) {
 
     console.log('✅ Сообщение отправлено в Telegram');
   } catch (error) {
-    console.error('❌ Ошибка отправки в Telegram:', error.message);
+    // Логируем ошибку, но не выбрасываем её дальше, чтобы не ломать основной процесс
+    console.error('❌ Ошибка отправки в Telegram (не критично):', error.message);
+    // НЕ выбрасываем ошибку, чтобы не прерывать сохранение данных
   }
 }
 
