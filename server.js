@@ -110,6 +110,62 @@ const driverSchema = new mongoose.Schema(
 
 const Driver = mongoose.model('Driver', driverSchema);
 
+// ------------ TELEGRAM ИНТЕГРАЦИЯ ------------
+
+const TELEGRAM_BOT_TOKEN = process.env.8588186081:AAEgiznswcPK0UIkEgBKTs-NY_wL1nfK6CI || '';
+const TELEGRAM_CHAT_ID = process.env.-5048591982 || '';
+
+// Функция для отправки сообщений в Telegram
+async function sendToTelegram(message) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.warn('⚠️ Telegram не настроен: отсутствует TELEGRAM_BOT_TOKEN или TELEGRAM_CHAT_ID');
+    return;
+  }
+
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const data = {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message,
+      parse_mode: 'HTML',
+    };
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    const response = await new Promise((resolve, reject) => {
+      const req = https.request(url, options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve({ statusCode: res.statusCode, body });
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${body}`));
+          }
+        });
+      });
+
+      req.on('error', (err) => {
+        reject(err);
+      });
+
+      req.write(JSON.stringify(data));
+      req.end();
+    });
+
+    console.log('✅ Сообщение отправлено в Telegram');
+  } catch (error) {
+    console.error('❌ Ошибка отправки в Telegram:', error.message);
+  }
+}
+
 // ------------ ПРОСТАЯ АДМИН-АВТОРИЗАЦИЯ ------------
 
 
