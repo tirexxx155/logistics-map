@@ -302,6 +302,13 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
     if (!deleted) {
       return res.status(404).json({ message: 'Заявка не найдена' });
     }
+    
+    // Удаляем все связанные записи расписания (каскадное удаление)
+    await ScheduleItem.deleteMany({ orderId: id });
+    
+    // Удаляем связанные записи активности
+    await Activity.deleteMany({ orderId: id });
+    
     res.json({ ok: true });
   } catch (err) {
     console.error('DELETE /api/orders error:', err);
@@ -317,7 +324,9 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
 app.get('/api/schedule', async (req, res) => {
   try {
     const schedule = await ScheduleItem.find().populate('orderId').sort({ loadingDate: 1 });
-    res.json(schedule);
+    // Фильтруем записи, у которых заявка была удалена (orderId === null)
+    const filteredSchedule = schedule.filter(item => item.orderId !== null);
+    res.json(filteredSchedule);
   } catch (err) {
     console.error('GET /api/schedule error:', err);
     res.status(500).json({ message: 'Ошибка сервера при получении расписания' });
@@ -337,7 +346,10 @@ app.get('/api/schedule/date/:date', async (req, res) => {
       loadingDate: { $gte: startDate, $lte: endDate }
     }).populate('orderId');
     
-    res.json(schedule);
+    // Фильтруем записи, у которых заявка была удалена (orderId === null)
+    const filteredSchedule = schedule.filter(item => item.orderId !== null);
+    
+    res.json(filteredSchedule);
   } catch (err) {
     console.error('GET /api/schedule/date error:', err);
     res.status(500).json({ message: 'Ошибка сервера при получении расписания' });
