@@ -184,12 +184,62 @@ body {
 
 /* ФОРМА ДОБАВЛЕНИЯ ЗАЯВКИ */
 
-.add-order {
+.forms-container {
     margin-top: 10px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.add-order {
+    flex: 1;
     padding: 10px 14px 12px;
     background: #f9fafb;
     border-radius: 12px;
     border: 1px solid #e5e7eb;
+}
+
+.add-driver {
+    flex: 0 0 350px;
+    padding: 10px 14px 12px;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.add-driver h2 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.add-driver label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.add-driver input {
+    padding: 5px 9px;
+    font-size: 13px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    outline: none;
+    min-width: 140px;
+    background: #ffffff;
+    width: 100%;
+}
+
+.add-driver input:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
+.add-driver .btn-primary {
+    margin-top: 4px;
 }
 
 .add-order h2 {
@@ -264,11 +314,15 @@ body {
 #sidebar {
     width: 34%;
     max-width: 480px;
+    min-width: 300px;
     border-right: 1px solid #e5e7eb;
     padding: 10px 12px;
     overflow-y: auto;
+    overflow-x: auto;
     background: #ffffff;
     box-shadow: inset -1px 0 0 rgba(229, 231, 235, 0.7);
+    flex-shrink: 0;
+    position: relative;
 }
 
 #sidebar h2 {
@@ -407,27 +461,7 @@ body {
 
 /* АДАПТИВ НЕМНОГО */
 
-@media (max-width: 900px) {
-    .header-top {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .header-meta {
-        align-items: flex-start;
-    }
-
-    #layout {
-        flex-direction: column;
-    }
-
-    #sidebar {
-        width: 100%;
-        max-width: none;
-        border-right: none;
-        border-bottom: 1px solid #e5e7eb;
-        box-shadow: inset 0 -1px 0 rgba(229, 231, 235, 0.7);
-    }
+/* Старый медиа-запрос заменен на более детальные ниже */
 }
 
 /* СТАТИСТИКА В ШАПКЕ */
@@ -439,6 +473,7 @@ body {
     gap: 12px;
     font-size: 13px;
     color: #4b5563;
+    flex-shrink: 0;
 }
 
 .stat-item {
@@ -447,6 +482,8 @@ body {
     background: #fef3c7;         /* мягкий жёлтый */
     border: 1px solid #fde68a;
     font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .stat-item span {
@@ -515,6 +552,17 @@ body {
     background: #e5e7eb;
     border-right: 1px solid #d1d5db;
     cursor: col-resize;
+    position: relative;
+    z-index: 10;
+    transition: background 0.2s;
+}
+
+.sidebar-resizer:hover {
+    background: #d1d5db;
+}
+
+body.sidebar-resize-active .sidebar-resizer {
+    background: #3b82f6;
 }
 
 /* Во время перетаскивания отключаем выделение текста и меняем курсор */
@@ -525,4 +573,1251 @@ body.sidebar-resize-active {
 /* Подсветка выбранной строки заявки */
 #ordersTable tbody tr.row-selected {
     background: #dbeafe !important;  /* нежно-синий */
+}
+
+/* ----- ТАБЫ "Карта / Календарь" ----- */
+
+.app-tabs {
+    margin-top: 6px;
+    display: inline-flex;
+    gap: 6px;
+    padding: 3px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    align-items: center;
+}
+
+.tab-button {
+    border: none;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    background: transparent;
+    color: #4b5563;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab-button--active {
+    background: #111827;
+    color: #f9fafb;
+}
+
+.theme-toggle-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 18px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.8);
+    color: #4b5563;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 28px;
+    margin-left: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.theme-toggle-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.theme-toggle-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.theme-icon {
+    display: block;
+    line-height: 1;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
+}
+
+/* ----- КАЛЕНДАРЬ ----- */
+
+#calendarView {
+    padding: 16px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    flex: 1;
+}
+
+.calendar-layout {
+    display: flex;
+    gap: 24px;
+    height: 100%;
+    min-height: 0;
+    flex: 1;
+}
+
+.calendar-wrapper {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    padding: 12px 16px 16px;
+    min-width: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+#calendarControls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.calendar-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+#calendar {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: center;
+    flex: 1;
+}
+
+#calendar th,
+#calendar td {
+    border: 1px solid #e5e7eb;
+    padding: 4px 0;
+    width: 14.28%;
+    color: #111827;
+    min-height: 24px;
+}
+
+#calendar th {
+    background: #f3f4f6;
+    font-weight: 600;
+}
+
+#calendar td.calendar-day {
+    cursor: default;
+    color: #111827;
+}
+
+#calendar td {
+    height: 32px;
+    vertical-align: middle;
+    line-height: 24px;
+}
+
+#calendar td.calendar-today {
+    background: #fef3c7;
+    font-weight: 600;
+}
+
+#calendar td.calendar-has-orders {
+    background: #dbeafe;
+    position: relative;
+}
+
+#calendar td.calendar-has-orders:hover {
+    background: #bfdbfe;
+}
+
+.calendar-day-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 60px;
+    padding: 2px;
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.calendar-orders-info {
+    font-size: 10px;
+    line-height: 1.2;
+    margin-top: auto;
+}
+
+.calendar-orders-count {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.calendar-orders-volume {
+    color: #059669;
+    font-weight: 500;
+    margin-top: 1px;
+}
+
+/* Стили для модального окна с заявками на день */
+.day-orders-summary {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f3f4f6;
+    border-radius: 8px;
+}
+
+.day-orders-summary p {
+    margin: 4px 0;
+    font-size: 14px;
+}
+
+.day-orders-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.day-orders-supplier {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.day-orders-supplier h3 {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.day-orders-supplier ul {
+    margin: 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.day-orders-supplier li {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+/* Стили для элементов заявок в модальном окне дня */
+.day-orders-item {
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.day-orders-item-header {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.day-orders-item-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.day-orders-item-info {
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.day-orders-item-info div {
+    margin: 4px 0;
+}
+
+.day-orders-item-schedule {
+    margin-top: 12px;
+}
+
+.schedule-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0;
+    padding: 8px;
+    background: #f9fafb;
+    border-radius: 6px;
+}
+
+.schedule-row label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.schedule-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.shipped-tons-input {
+    padding: 4px 8px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    width: 100px;
+    text-align: right;
+}
+
+.shipped-tons-input:focus {
+    border-color: #f59e0b;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
+.shipped-tons-input:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+}
+
+.schedule-comment {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fef3c7;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #92400e;
+}
+
+.calendar-orders-shipped {
+    color: #059669;
+    font-weight: 500;
+    margin-top: 1px;
+    font-size: 10px;
+}
+
+/* Стили для модального окна дня - обновленные */
+.day-orders-item-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.day-orders-item-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.info-grid div {
+    padding: 4px 0;
+}
+
+.logistician-input {
+    padding: 4px 8px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    width: 150px;
+}
+
+.logistician-input:focus {
+    border-color: #f59e0b;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
+.logistician-input:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+}
+
+.required-tons-input {
+    padding: 4px 8px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    width: 100px;
+    text-align: right;
+}
+
+.required-tons-input:focus {
+    border-color: #f59e0b;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
+/* ЛЕНТА АКТИВНОСТИ (встроенная в календарь) */
+.activity-feed-inline {
+    flex: 1;
+    min-width: 400px;
+    max-width: 600px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.activity-feed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 12px 12px 0 0;
+}
+
+.activity-feed-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.activity-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    min-height: 0;
+}
+
+.activity-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border-left: 3px solid #e5e7eb;
+    transition: background 0.2s ease;
+}
+
+.activity-item:hover {
+    background: #f3f4f6;
+}
+
+.activity-item.activity-order-created {
+    border-left-color: #3b82f6;
+}
+
+.activity-item.activity-order-updated {
+    border-left-color: #f59e0b;
+}
+
+.activity-item.activity-schedule-created {
+    border-left-color: #8b5cf6;
+}
+
+.activity-item.activity-tons-shipped {
+    border-left-color: #10b981;
+}
+
+.activity-item.activity-schedule-completed {
+    border-left-color: #059669;
+}
+
+.activity-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-message {
+    font-size: 13px;
+    color: #111827;
+    line-height: 1.4;
+    margin-bottom: 4px;
+}
+
+.activity-details {
+    font-size: 12px;
+    color: #4b5563;
+    margin: 6px 0 4px 0;
+    line-height: 1.5;
+}
+
+.activity-time {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.activity-empty {
+    text-align: center;
+    padding: 20px;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.remaining-input {
+    padding: 4px 8px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    width: 100px;
+    text-align: right;
+    font-weight: 600;
+}
+
+.remaining-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
+/* ======================== ТЕМНАЯ ТЕМА ======================== */
+
+body.dark-theme {
+    background: #1a1f2e;
+    color: #e8eaed;
+}
+
+body.dark-theme .app-header {
+    background: #252b3a;
+    border-bottom: 1px solid #3a4150;
+}
+
+body.dark-theme .header-section {
+    background: #252b3a;
+    border-bottom: 1px solid #3a4150;
+}
+
+body.dark-theme .forms-container {
+    background: transparent;
+}
+
+body.dark-theme .add-order {
+    background: #252b3a;
+    border: 1px solid #3a4150;
+}
+
+body.dark-theme .add-driver {
+    background: #252b3a;
+    border: 1px solid #3a4150;
+}
+
+body.dark-theme .add-driver h2 {
+    color: #f3f4f6;
+}
+
+body.dark-theme .add-driver label {
+    color: #d1d5db;
+}
+
+body.dark-theme .add-driver input {
+    background: #1f2532;
+    border-color: #3a4150;
+    color: #e8eaed;
+}
+
+body.dark-theme .add-driver input:focus {
+    border-color: #3b82f6;
+    background: #252b3a;
+}
+
+body.dark-theme #sidebar {
+    background: #252b3a;
+    border-right: 1px solid #3a4150;
+    color: #e8eaed;
+}
+
+body.dark-theme #sidebar h2 {
+    color: #f1f5f9;
+}
+
+body.dark-theme #ordersTable {
+    color: #e2e8f0;
+}
+
+body.dark-theme #ordersTable th {
+    background: #1f2532;
+    color: #d1d5db;
+    border-color: #3a4150;
+}
+
+body.dark-theme #ordersTable td {
+    border-color: #3a4150;
+}
+
+body.dark-theme #ordersTable tbody tr:hover {
+    background: #2d3441;
+}
+
+body.dark-theme #ordersTable tbody tr.row-selected {
+    background: #1e40af;
+}
+
+body.dark-theme .btn {
+    color: #e2e8f0;
+}
+
+body.dark-theme .btn-primary {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+body.dark-theme .btn-primary:hover {
+    background: #2563eb;
+}
+
+body.dark-theme .btn-ghost {
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid #475569;
+}
+
+body.dark-theme .btn-ghost:hover {
+    background: #334155;
+    color: #e2e8f0;
+}
+
+body.dark-theme .app-tabs {
+    background: #2d3441;
+}
+
+body.dark-theme .tab-button {
+    color: #9ca3af;
+}
+
+body.dark-theme .tab-button--active {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+body.dark-theme .theme-toggle-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fbbf24;
+}
+
+body.dark-theme .theme-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fcd34d;
+}
+
+body.dark-theme input,
+body.dark-theme select,
+body.dark-theme textarea {
+    background: #1f2532;
+    border-color: #3a4150;
+    color: #e8eaed;
+}
+
+body.dark-theme input:focus,
+body.dark-theme select:focus,
+body.dark-theme textarea:focus {
+    border-color: #3b82f6;
+    background: #252b3a;
+}
+
+body.dark-theme .modal-content {
+    background: #252b3a;
+    color: #e8eaed;
+    border-color: #3a4150;
+}
+
+body.dark-theme .modal-backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+body.dark-theme .calendar-wrapper {
+    background: #252b3a;
+    border-color: #3a4150;
+}
+
+body.dark-theme #calendar th {
+    background: #1f2532;
+    color: #d1d5db;
+    border-color: #3a4150;
+}
+
+body.dark-theme #calendar td {
+    border-color: #3a4150;
+    color: #e8eaed;
+}
+
+body.dark-theme .calendar-today {
+    background: #1e40af;
+    color: #ffffff;
+}
+
+body.dark-theme .calendar-has-orders {
+    background: #1e40af;
+}
+
+body.dark-theme .calendar-has-orders:hover {
+    background: #2563eb;
+}
+
+body.dark-theme .activity-feed-inline {
+    background: #252b3a;
+    border-color: #3a4150;
+}
+
+body.dark-theme .activity-feed-header {
+    background: #1f2532;
+    border-bottom-color: #3a4150;
+}
+
+body.dark-theme .activity-feed-header h3 {
+    color: #f3f4f6;
+}
+
+body.dark-theme .activity-item {
+    background: #1f2532;
+    border-left-color: #4b5563;
+}
+
+body.dark-theme .activity-item:hover {
+    background: #2d3441;
+}
+
+body.dark-theme .activity-message {
+    color: #e8eaed;
+}
+
+body.dark-theme .activity-details {
+    color: #9ca3af;
+}
+
+body.dark-theme .activity-time {
+    color: #6b7280;
+}
+
+body.dark-theme .day-orders-item {
+    background: #1f2532;
+    border-color: #3a4150;
+}
+
+body.dark-theme .day-orders-item-header h3 {
+    color: #f3f4f6;
+}
+
+body.dark-theme .info-grid {
+    color: #d1d5db;
+}
+
+body.dark-theme .schedule-row label {
+    color: #d1d5db;
+}
+
+body.dark-theme .schedule-value {
+    color: #e8eaed;
+}
+
+body.dark-theme .sidebar-resizer {
+    background: #3a4150;
+    border-right-color: #4b5563;
+}
+
+body.dark-theme .sidebar-resizer:hover {
+    background: #4b5563;
+}
+
+body.dark-theme.sidebar-resize-active .sidebar-resizer {
+    background: #3b82f6;
+}
+
+body.dark-theme .app-footer {
+    background: #252b3a;
+    border-top-color: #3a4150;
+    color: #9ca3af;
+}
+
+body.dark-theme .stat-item {
+    background: #1f2532;
+    border-color: #3a4150;
+    color: #9ca3af;
+}
+
+body.dark-theme .stat-item span {
+    color: #d1d5db;
+}
+
+body.dark-theme .brand-subtitle {
+    color: #e2e8f0;
+}
+
+/* ======================== МОБИЛЬНАЯ ВЕРСИЯ ======================== */
+
+@media (max-width: 768px) {
+    /* Общие стили */
+    body {
+        font-size: 14px;
+    }
+    
+    /* Шапка */
+    .app-header {
+        padding: 8px 12px;
+    }
+    
+    .header-top {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .brand {
+        flex-shrink: 0;
+    }
+    
+    .brand-logo {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .brand-name {
+        font-size: 16px;
+    }
+    
+    .brand-subtitle {
+        font-size: 10px;
+    }
+    
+    .header-meta {
+        width: 100%;
+    }
+    
+    .app-title {
+        font-size: 18px;
+    }
+    
+    .app-caption {
+        font-size: 11px;
+    }
+    
+    .app-tabs {
+        width: 100%;
+        justify-content: center;
+        margin-top: 8px;
+    }
+    
+    .tab-button {
+        flex: 1;
+        padding: 6px 8px;
+        font-size: 13px;
+    }
+    
+    .theme-toggle-btn {
+        min-width: 32px;
+        height: 32px;
+        padding: 0;
+    }
+    
+    .header-stats {
+        width: 100%;
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+    
+    .stat-item {
+        text-align: center;
+        font-size: 13px;
+        width: 100%;
+    }
+    
+    .header-section {
+        padding: 8px 0;
+    }
+    
+    /* Фильтры */
+    .filters {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .filters label {
+        width: 100%;
+    }
+    
+    .filters input,
+    .filters select {
+        width: 100%;
+    }
+    
+    .panel-toggles {
+        width: 100%;
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .panel-toggles .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Формы */
+    .forms-container {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .add-order,
+    .add-driver {
+        width: 100%;
+        flex: 1;
+        padding: 12px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .add-order label,
+    .add-driver label {
+        width: 100%;
+    }
+    
+    .add-order input,
+    .add-order select,
+    .add-driver input {
+        width: 100%;
+        min-width: unset;
+    }
+    
+    /* Layout - вертикальное расположение на мобильных */
+    #layout {
+        flex-direction: column;
+        height: auto;
+        min-height: calc(100vh - 200px); /* Вычитаем высоту шапки и футера */
+        padding-bottom: 0;
+    }
+    
+    #sidebar {
+        width: 100%;
+        max-width: 100%;
+        min-width: unset;
+        max-height: 40vh;
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .sidebar-resizer {
+        display: none;
+    }
+    
+    #map {
+        width: 100%;
+        height: calc(100vh - 250px); /* Вычитаем высоту шапки, сайдбара и футера */
+        min-height: 350px;
+        flex: 1;
+    }
+    
+    /* Футер не должен перекрывать карту */
+    .app-footer {
+        position: relative;
+        z-index: 1;
+        margin-top: auto;
+    }
+    
+    /* Таблица - горизонтальный скролл с улучшенной прокруткой */
+    #sidebar {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #ordersTable {
+        font-size: 11px;
+        min-width: 800px;
+    }
+    
+    #ordersTable th,
+    #ordersTable td {
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+    
+    #ordersTable th {
+        font-size: 10px;
+        padding: 6px 4px;
+    }
+    
+    .actions-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .edit-btn,
+    .delete-btn {
+        font-size: 10px;
+        padding: 4px 8px;
+        width: 100%;
+    }
+    
+    /* Календарь - увеличиваем пространство */
+    #calendarView {
+        padding: 12px;
+        padding-bottom: 100px; /* Отступ снизу для футера */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+        min-height: 0;
+        height: auto;
+        max-height: calc(100vh - 120px); /* Увеличили пространство, уменьшив вычитание */
+    }
+    
+    /* Скрываем фильтры и формы при просмотре календаря на мобильных */
+    body.calendar-view-active .header-section:has(.filters),
+    body.calendar-view-active .header-section.forms-container {
+        display: none !important;
+    }
+    
+    /* Альтернативный способ для браузеров без поддержки :has() */
+    body.calendar-view-active .filters {
+        display: none !important;
+    }
+    
+    body.calendar-view-active .panel-toggles {
+        display: none !important;
+    }
+    
+    /* Уменьшаем шапку при просмотре календаря */
+    body.calendar-view-active .app-header {
+        padding: 6px 12px;
+    }
+    
+    body.calendar-view-active .header-top {
+        margin-bottom: 6px;
+    }
+    
+    body.calendar-view-active .app-title {
+        font-size: 16px;
+    }
+    
+    body.calendar-view-active .app-caption {
+        display: none;
+    }
+    
+    body.calendar-view-active .header-stats {
+        display: none;
+    }
+    
+    .calendar-layout {
+        flex-direction: column;
+        gap: 16px;
+        min-height: min-content;
+    }
+    
+    .calendar-wrapper {
+        min-width: unset;
+        width: 100%;
+        flex-shrink: 0;
+    }
+    
+    #calendar {
+        font-size: 11px;
+    }
+    
+    #calendar th,
+    #calendar td {
+        padding: 6px 2px;
+    }
+    
+    .calendar-day-container {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .calendar-orders-info {
+        font-size: 9px;
+    }
+    
+    .activity-feed-inline {
+        min-width: unset;
+        max-width: 100%;
+        width: 100%;
+        min-height: 400px;
+        flex: 1;
+        flex-shrink: 0;
+    }
+    
+    /* Модальные окна */
+    .modal-content {
+        width: 95%;
+        max-width: 95%;
+        padding: 16px;
+        margin: 12px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .modal-actions .btn {
+        width: 100%;
+    }
+    
+    /* Кнопки */
+    .btn {
+        padding: 8px 16px;
+        font-size: 14px;
+        min-height: 40px;
+        touch-action: manipulation;
+    }
+    
+    .btn.small {
+        padding: 8px 14px;
+        font-size: 13px;
+        min-height: 40px;
+    }
+    
+    /* Улучшенная прокрутка для мобильных */
+    * {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Убираем выделение при касании */
+    * {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    /* День заявок модальное окно */
+    .day-orders-item {
+        padding: 10px;
+    }
+    
+    .day-orders-item-header h3 {
+        font-size: 14px;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+    
+    .schedule-row {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .day-orders-item-actions {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .day-orders-item-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Планшеты */
+@media (min-width: 769px) and (max-width: 1024px) {
+    #sidebar {
+        width: 40%;
+        max-width: 400px;
+    }
+    
+    .forms-container {
+        flex-wrap: wrap;
+    }
+    
+    .add-driver {
+        flex: 1;
+        min-width: 300px;
+    }
+}
+
+/* Очень маленькие экраны */
+@media (max-width: 480px) {
+    .app-header {
+        padding: 6px 8px;
+    }
+    
+    .brand-name {
+        font-size: 14px;
+    }
+    
+    .app-title {
+        font-size: 16px;
+    }
+    
+    .app-caption {
+        display: none;
+    }
+    
+    #sidebar {
+        max-height: 35vh;
+    }
+    
+    #map {
+        height: 65vh;
+        min-height: 350px;
+    }
+    
+    #ordersTable {
+        font-size: 10px;
+    }
+    
+    #calendar {
+        font-size: 10px;
+    }
+    
+    .calendar-wrapper {
+        padding: 8px;
+    }
+    
+    /* Улучшения для форм на очень маленьких экранах */
+    .add-order h2,
+    .add-driver h2 {
+        font-size: 14px;
+    }
+    
+    .hint {
+        font-size: 10px;
+    }
+    
+    /* Футер - фиксируем внизу, но не перекрываем контент */
+    .app-footer {
+        padding: 8px 12px;
+        font-size: 11px;
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+    }
+}
+
+/* Ландшафтная ориентация на мобильных */
+@media (max-width: 768px) and (orientation: landscape) {
+    #sidebar {
+        max-height: 30vh;
+    }
+    
+    #map {
+        height: 70vh;
+        min-height: 300px;
+    }
+    
+    .calendar-layout {
+        flex-direction: row;
+    }
+    
+    .activity-feed-inline {
+        max-height: 30vh;
+    }
 }

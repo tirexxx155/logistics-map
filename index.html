@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Elephant Logistics — карта заявок</title>
 
     <!-- Наши стили -->
@@ -22,6 +23,14 @@
             <div class="header-meta">
                 <div class="app-title">Карта заявок</div>
                 <div class="app-caption">Онлайн-карта заявок компании Elephant Logistics</div>
+            </div>
+
+            <div class="app-tabs">
+                <button id="tab-map" class="tab-button tab-button--active">Карта</button>
+                <button id="tab-calendar" class="tab-button">Календарь</button>
+                <button id="themeToggle" class="theme-toggle-btn" title="Переключить тему">
+                    <span class="theme-icon">🌙</span>
+                </button>
             </div>
 
             <div class="header-stats">
@@ -61,67 +70,94 @@
                 <button id="resetFilter" class="btn btn-ghost">Сбросить</button>
 
                 <div class="panel-toggles">
-                    <button id="toggleSidebar" class="btn btn-ghost small">Свернуть список заявок</button>                   
-                    
+                    <button id="toggleSidebar" class="btn btn-ghost small">Свернуть список заявок</button>
+                    <button id="toggleForm" class="btn btn-ghost small" style="display: none;">Свернуть форму заявок</button>
+                    <button id="toggleDrivers" class="btn btn-ghost small" style="display: none;">Показать водителей</button>
                 </div>
             </div>
         </div>
 
-       <!-- ДОБАВЛЕНИЕ ЗАЯВКИ -->
-<div class="header-section add-order">
-  <h2>Добавить заявку</h2>
-  <form id="addOrderForm">
-    <div class="form-row">
-      <label>
-        Загрузка:
-        <input type="text" id="fromInput" placeholder="Город, адрес загрузки" required>
-      </label>
-      <label>
-        Выгрузка:
-        <input type="text" id="toInput" placeholder="Город, адрес выгрузки" required>
-      </label>
-      <label>
-        Груз:
-        <input type="text" id="cargoInput" placeholder="Тип груза" required>
-      </label>
-    </div>
+       <!-- ДОБАВЛЕНИЕ ЗАЯВКИ И ВОДИТЕЛЕЙ -->
+<div class="header-section forms-container">
+  <div class="add-order">
+    <h2>Добавить заявку</h2>
+    <form id="addOrderForm">
+      <div class="form-row">
+        <label>
+          Загрузка:
+          <input type="text" id="fromInput" placeholder="Город, адрес загрузки" required>
+        </label>
+        <label>
+          Выгрузка:
+          <input type="text" id="toInput" placeholder="Город, адрес выгрузки" required>
+        </label>
+        <label>
+          Груз:
+          <input type="text" id="cargoInput" placeholder="Тип груза" required>
+        </label>
+      </div>
 
-    <div class="form-row">
-      <label>
-        Цена, ₽/т:
-        <input type="number" id="priceInput" required>
-      </label>
+      <div class="form-row">
+        <label>
+          Цена, ₽/т:
+          <input type="number" id="priceInput" required>
+        </label>
 
-      <label>
-        Тип загрузки:
-        <select id="normInput" required>
-          <option value="">Выберите...</option>
-          <option value="По полной">По полной</option>
-          <option value="По норме">По норме</option>
-        </select>
-      </label>
+        <label>
+          Тип загрузки:
+          <select id="normInput" required>
+            <option value="">Выберите...</option>
+            <option value="По полной">По полной</option>
+            <option value="По норме">По норме</option>
+          </select>
+        </label>
 
-      <label>
-        Объём:
-        <input type="text" id="volumeInput" placeholder="2001т">
-      </label>
-    </div>
+        <label>
+          Объём:
+          <input type="text" id="volumeInput" placeholder="2001т">
+        </label>
+      </div>
 
-    <div class="form-row">
-      <label style="flex:1;">
-        Комментарий:
-        <input type="text" id="commentInput" placeholder="Например: срочно">
-      </label>
-    </div>
+      <div class="form-row">
+        <label style="flex:1;">
+          Комментарий:
+          <input type="text" id="commentInput" placeholder="Например: срочно">
+        </label>
+      </div>
 
-    <p class="hint">
-      Координаты и расстояние будут определены автоматически по адресам загрузки и выгрузки.
-    </p>
+      <p class="hint">
+        Координаты и расстояние будут определены автоматически по адресам загрузки и выгрузки.
+      </p>
 
-    <button type="submit" class="btn btn-primary">Добавить на карту</button>
-  </form>
+      <button type="submit" class="btn btn-primary">Добавить на карту</button>
+    </form>
+  </div>
+
+  <div class="add-driver" style="display: none;">
+    <h2>Добавить водителя</h2>
+    <form id="addDriverForm">
+      <div class="form-row">
+        <label style="flex:1;">
+          Адрес:
+          <input type="text" id="driverAddressInput" placeholder="Город, адрес водителя" required>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label style="flex:1;">
+          Комментарий:
+          <input type="text" id="driverCommentInput" placeholder="Комментарий о водителе">
+        </label>
+      </div>
+
+      <p class="hint">
+        Координаты будут определены автоматически по адресу.
+      </p>
+
+      <button type="submit" class="btn btn-primary">Добавить водителя</button>
+    </form>
+  </div>
 </div>
-
 
   
 </div>
@@ -140,6 +176,7 @@
     <th>Цена, ₽/т</th>
     <th>Загрузка</th>
     <th>Выгрузка</th>
+    <th>Расстояние</th>
     <th>Тип загрузки</th>
     <th>Объём</th>
     <th>Комментарий</th>
@@ -157,6 +194,41 @@
         <div id="map"></div>
     </div>
 
+    <!-- ВИД 2: КАЛЕНДАРЬ -->
+    <div id="calendarView" class="hidden">
+      <div class="calendar-layout">
+        <div class="calendar-wrapper">
+          <div id="calendarControls">
+            <button id="calPrev" class="btn btn-ghost small">◀</button>
+            <span id="calTitle" class="calendar-title"></span>
+            <button id="calNext" class="btn btn-ghost small">▶</button>
+          </div>
+
+          <table id="calendar">
+            <thead>
+              <tr>
+                <th>Пн</th>
+                <th>Вт</th>
+                <th>Ср</th>
+                <th>Чт</th>
+                <th>Пт</th>
+                <th>Сб</th>
+                <th>Вс</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        
+        <div class="activity-feed-inline">
+          <div class="activity-feed-header">
+            <h3>Активность</h3>
+          </div>
+          <div id="activityList" class="activity-list"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ФУТЕР -->
     <footer class="app-footer">
         <div class="footer-left">
@@ -168,6 +240,78 @@
             <span>elephant-logistics.com</span>
         </div>
     </footer>
+
+   <!-- Модальное окно для назначения заявки на дату -->
+   <div id="assignOrderModal" class="modal hidden">
+     <div class="modal-backdrop"></div>
+     <div class="modal-content">
+       <h2>Назначить заявку на дату</h2>
+       <form id="assignOrderForm">
+         <div class="form-row">
+           <label>
+             Дата загрузки:
+             <input type="date" id="assignDateInput" required>
+           </label>
+           <label>
+             Количество тонн:
+             <input type="number" id="assignTonsInput" min="0" step="0.01" required>
+           </label>
+         </div>
+         <div class="form-row">
+           <label style="flex:1;">
+             Комментарий:
+             <input type="text" id="assignCommentInput" placeholder="Комментарий к назначению">
+           </label>
+         </div>
+         <div class="modal-actions">
+           <button type="button" id="assignCancelBtn" class="btn btn-ghost">Отмена</button>
+           <button type="submit" class="btn btn-primary">Назначить</button>
+         </div>
+       </form>
+     </div>
+   </div>
+
+   <!-- Модальное окно для редактирования назначения -->
+   <div id="editScheduleModal" class="modal hidden">
+     <div class="modal-backdrop"></div>
+     <div class="modal-content">
+       <h2>Редактировать назначение</h2>
+       <form id="editScheduleForm">
+         <div class="form-row">
+           <label>
+             Дата загрузки:
+             <input type="date" id="editScheduleDateInput" required>
+           </label>
+           <label>
+             Необходимое количество тонн:
+             <input type="number" id="editScheduleTonsInput" min="0" step="0.01" required>
+           </label>
+         </div>
+         <div class="form-row">
+           <label style="flex:1;">
+             Комментарий:
+             <input type="text" id="editScheduleCommentInput" placeholder="Комментарий к назначению">
+           </label>
+         </div>
+         <div class="modal-actions">
+           <button type="button" id="editScheduleCancelBtn" class="btn btn-ghost">Отмена</button>
+           <button type="submit" class="btn btn-primary">Сохранить</button>
+         </div>
+       </form>
+     </div>
+   </div>
+
+   <!-- Модальное окно для просмотра заявок на день -->
+   <div id="dayOrdersModal" class="modal hidden">
+     <div class="modal-backdrop"></div>
+     <div class="modal-content" style="max-width: 700px;">
+       <h2 id="dayOrdersTitle">Заявки на загрузку</h2>
+       <div id="dayOrdersList"></div>
+       <div class="modal-actions">
+         <button type="button" id="dayOrdersCloseBtn" class="btn btn-primary">Закрыть</button>
+       </div>
+     </div>
+   </div>
 
    <div id="editModal" class="modal hidden">
   <div class="modal-backdrop"></div>
@@ -211,8 +355,8 @@
         </label>
       </div>
 
-      <div class="form-row">
-        <label>
+        <div class="form-row">
+          <label>
           Объём:
           <input type="text" id="editVolumeInput">
         </label>

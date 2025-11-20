@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
+const https = require('https');
 
 // если локально будешь использовать .env – это не мешает на Render
 try {
@@ -46,6 +47,7 @@ const orderSchema = new mongoose.Schema(
     norm: String,
     volume: String,
     comment: String,          // <-- новое поле
+    loadingDate: Date,        // <-- дата загрузки для календаря
   },
   { timestamps: true }
 );
@@ -53,6 +55,60 @@ const orderSchema = new mongoose.Schema(
 
 
 const Order = mongoose.model('Order', orderSchema);
+
+// ------------ МОДЕЛЬ РАСПИСАНИЯ ЗАГРУЗКИ ------------
+const scheduleItemSchema = new mongoose.Schema(
+  {
+    orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
+    loadingDate: { type: Date, required: true },
+    requiredTons: { type: Number, required: true }, // необходимое количество тонн
+    shippedTons: { type: Number, default: 0 },      // отправленное количество тонн
+    comment: String,                                 // комментарий для этой даты
+    logistician: String,                             // логист, который отправляет тонны
+  },
+  { timestamps: true }
+);
+
+// Индекс для быстрого поиска по дате
+scheduleItemSchema.index({ loadingDate: 1 });
+
+const ScheduleItem = mongoose.model('ScheduleItem', scheduleItemSchema);
+
+// ------------ МОДЕЛЬ АКТИВНОСТИ ------------
+const activitySchema = new mongoose.Schema(
+  {
+    type: { 
+      type: String, 
+      required: true,
+      enum: ['order_created', 'order_updated', 'schedule_created', 'schedule_updated', 'tons_shipped', 'schedule_completed']
+    },
+    message: { type: String, required: true },
+    orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+    scheduleId: { type: mongoose.Schema.Types.ObjectId, ref: 'ScheduleItem' },
+    logistician: String,
+    tons: Number,
+    date: Date,
+  },
+  { timestamps: true }
+);
+
+// Индекс для сортировки по времени
+activitySchema.index({ createdAt: -1 });
+
+const Activity = mongoose.model('Activity', activitySchema);
+
+// ------------ МОДЕЛЬ ВОДИТЕЛЯ ------------
+const driverSchema = new mongoose.Schema(
+  {
+    address: { type: String, required: true },
+    comment: String,
+    lat: Number,
+    lon: Number,
+  },
+  { timestamps: true }
+);
+
+const Driver = mongoose.model('Driver', driverSchema);
 
 // ------------ ПРОСТАЯ АДМИН-АВТОРИЗАЦИЯ ------------
 
@@ -118,6 +174,23 @@ app.post('/api/orders', requireAdmin, async (req, res) => {
   try {
     const order = new Order(req.body);
     const saved = await order.save();
+    
+    // Создаем запись активности
+    const activity = new Activity({
+      type: 'order_created',
+      message: `Появилась новая заявка: ${saved.cargo || 'Груз'} от ${saved.from || 'Поставщик'} → ${saved.to || 'Выгрузка'}`,
+      orderId: saved._id,
+    });
+    await activity.save();
+    
+    // Отправляем в Telegram
+    await sendToTelegram(`🆕 <b>Новая заявка</b>\n\n` +
+      `Груз: ${saved.cargo || 'Не указан'}\n` +
+      `Откуда: ${saved.from || 'Не указано'}\n` +
+      `Куда: ${saved.to || 'Не указано'}\n` +
+      `${saved.pricePerTon ? `Цена: ${saved.pricePerTon} ₽/т\n` : ''}` +
+      `${saved.distanceKm ? `Расстояние: ${saved.distanceKm} км` : ''}`);
+    
     res.status(201).json(saved);
   } catch (err) {
     console.error('POST /api/orders error:', err);
@@ -137,6 +210,23 @@ app.put('/api/orders/:id', requireAdmin, async (req, res) => {
     if (!updated) {
       return res.status(404).json({ message: 'Заявка не найдена' });
     }
+    
+   
+    
+    // Создаем запись активности
+    const activity = new Activity({
+      type: 'order_updated',
+      message: `Заявка обновлена: ${updated.cargo || 'Груз'} от ${updated.from || 'Поставщик'} → ${updated.to || 'Выгрузка'}`,
+      orderId: updated._id,
+    });
+    await activity.save();
+    
+    // Отправляем в Telegram
+    await sendToTelegram(`✏️ <b>Заявка обновлена</b>\n\n` +
+      `Груз: ${updated.cargo || 'Не указан'}\n` +
+      `Откуда: ${updated.from || 'Не указано'}\n` +
+      `Куда: ${updated.to || 'Не указано'}`);
+    
     res.json(updated);
   } catch (err) {
     console.error('PUT /api/orders error:', err);
@@ -160,6 +250,214 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
     res
       .status(500)
       .json({ message: 'Ошибка сервера при удалении заявки' });
+  }
+});
+
+// ------------ API ДЛЯ РАСПИСАНИЯ ЗАГРУЗОК ------------
+
+// GET /api/schedule — получить все назначения (с заявками)
+app.get('/api/schedule', async (req, res) => {
+  try {
+    const schedule = await ScheduleItem.find().populate('orderId').sort({ loadingDate: 1 });
+    res.json(schedule);
+  } catch (err) {
+    console.error('GET /api/schedule error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при получении расписания' });
+  }
+});
+
+// GET /api/schedule/date/:date — получить назначения на конкретную дату
+app.get('/api/schedule/date/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+    
+    const schedule = await ScheduleItem.find({
+      loadingDate: { $gte: startDate, $lte: endDate }
+    }).populate('orderId');
+    
+    res.json(schedule);
+  } catch (err) {
+    console.error('GET /api/schedule/date error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при получении расписания' });
+  }
+});
+
+// POST /api/schedule — создать новое назначение (только админ)
+app.post('/api/schedule', requireAdmin, async (req, res) => {
+  try {
+    const scheduleItem = new ScheduleItem(req.body);
+    const saved = await scheduleItem.save();
+    const populated = await ScheduleItem.findById(saved._id).populate('orderId');
+    
+    // Создаем запись активности
+    const order = populated.orderId;
+    const loadingDate = new Date(populated.loadingDate).toLocaleDateString('ru-RU');
+    const activity = new Activity({
+      type: 'schedule_created',
+      message: `Появилась новая загрузка на ${loadingDate}: ${order.cargo || 'Груз'} (${populated.requiredTons} т) от ${order.from || 'Поставщик'}`,
+      orderId: order._id,
+      scheduleId: populated._id,
+      date: populated.loadingDate,
+      tons: populated.requiredTons,
+    });
+    await activity.save();
+    
+    // Отправляем в Telegram
+    await sendToTelegram(`📅 <b>Новая загрузка</b>\n\n` +
+      `Дата: ${loadingDate}\n` +
+      `Груз: ${order.cargo || 'Не указан'}\n` +
+      `Откуда: ${order.from || 'Не указано'}\n` +
+      `Куда: ${order.to || 'Не указано'}\n` +
+      `Необходимо: ${populated.requiredTons} т`);
+    
+    res.status(201).json(populated);
+  } catch (err) {
+    console.error('POST /api/schedule error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при создании назначения' });
+  }
+});
+
+// PUT /api/schedule/:id — обновить назначение (только админ)
+app.put('/api/schedule/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const oldItem = await ScheduleItem.findById(id).populate('orderId');
+    const updated = await ScheduleItem.findByIdAndUpdate(id, req.body, { new: true })
+      .populate('orderId');
+    if (!updated) {
+      return res.status(404).json({ message: 'Назначение не найдено' });
+    }
+    
+    // Создаем запись активности при изменении отправленных тонн
+    if (req.body.shippedTons !== undefined && req.body.shippedTons !== oldItem.shippedTons) {
+      const order = updated.orderId;
+      const loadingDate = new Date(updated.loadingDate).toLocaleDateString('ru-RU');
+      const logistician = req.body.logistician || updated.logistician || 'Логист';
+      const tonsDiff = req.body.shippedTons - (oldItem.shippedTons || 0);
+      
+      let activityType = 'tons_shipped';
+      let message = '';
+      
+      if (updated.shippedTons >= updated.requiredTons) {
+        activityType = 'schedule_completed';
+        message = `Загрузка на ${loadingDate} полностью выполнена: ${order.cargo || 'Груз'} (${updated.requiredTons} т) от ${order.from || 'Поставщик'}`;
+      } else {
+        message = `${logistician} отправил ${tonsDiff.toFixed(2)} т по заявке "${order.cargo || 'Груз'}" на ${loadingDate}. Всего отправлено: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т`;
+      }
+      
+      const activity = new Activity({
+        type: activityType,
+        message,
+        orderId: order._id,
+        scheduleId: updated._id,
+        logistician: logistician,
+        tons: tonsDiff,
+        date: updated.loadingDate,
+      });
+      await activity.save();
+      
+      // Отправляем в Telegram
+      if (activityType === 'schedule_completed') {
+        await sendToTelegram(`✅ <b>Загрузка полностью выполнена</b>\n\n` +
+          `Дата: ${loadingDate}\n` +
+          `Груз: ${order.cargo || 'Не указан'}\n` +
+          `Откуда: ${order.from || 'Не указано'}\n` +
+          `Куда: ${order.to || 'Не указано'}\n` +
+          `Отправлено: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т`);
+      } else {
+        await sendToTelegram(`🚚 <b>Отправка тонн</b>\n\n` +
+          `Логист: ${logistician || 'Не указан'}\n` +
+          `Дата: ${loadingDate}\n` +
+          `Груз: ${order.cargo || 'Не указан'}\n` +
+          `Откуда: ${order.from || 'Не указано'}\n` +
+          `Куда: ${order.to || 'Не указано'}\n` +
+          `Отправлено: ${tonsDiff.toFixed(2)} т\n` +
+          `Всего: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т\n` +
+          `Остаток: ${(updated.requiredTons - updated.shippedTons).toFixed(2)} т`);
+      }
+    }
+    
+    res.json(updated);
+  } catch (err) {
+    console.error('PUT /api/schedule error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при обновлении назначения' });
+  }
+});
+
+// DELETE /api/schedule/:id — удалить назначение (только админ)
+app.delete('/api/schedule/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await ScheduleItem.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Назначение не найдено' });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /api/schedule error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при удалении назначения' });
+  }
+});
+
+// ------------ API ДЛЯ ВОДИТЕЛЕЙ ------------
+
+// GET /api/drivers — получить всех водителей
+app.get('/api/drivers', async (req, res) => {
+  try {
+    const drivers = await Driver.find();
+    res.json(drivers);
+  } catch (err) {
+    console.error('GET /api/drivers error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при получении водителей' });
+  }
+});
+
+// POST /api/drivers — создать нового водителя (только админ)
+app.post('/api/drivers', requireAdmin, async (req, res) => {
+  try {
+    const driver = new Driver(req.body);
+    const saved = await driver.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    console.error('POST /api/drivers error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при создании водителя' });
+  }
+});
+
+// DELETE /api/drivers/:id — удалить водителя (только админ)
+app.delete('/api/drivers/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Driver.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Водитель не найден' });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /api/drivers error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при удалении водителя' });
+  }
+});
+
+// ------------ API ДЛЯ АКТИВНОСТИ ------------
+
+// GET /api/activities — получить последние записи активности
+app.get('/api/activities', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const activities = await Activity.find()
+      .populate('orderId')
+      .populate('scheduleId')
+      .sort({ createdAt: -1 })
+      .limit(limit);
+    res.json(activities);
+  } catch (err) {
+    console.error('GET /api/activities error:', err);
+    res.status(500).json({ message: 'Ошибка сервера при получении активности' });
   }
 });
 
