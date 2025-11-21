@@ -522,6 +522,8 @@ function openEditScheduleModal(scheduleItem) {
   const modal = document.getElementById("editScheduleModal");
   const dateInput = document.getElementById("editScheduleDateInput");
   const tonsInput = document.getElementById("editScheduleTonsInput");
+  const clientPriceInput = document.getElementById("editScheduleClientPriceInput");
+  const ourPriceInput = document.getElementById("editScheduleOurPriceInput");
   const commentInput = document.getElementById("editScheduleCommentInput");
 
   if (!modal || !dateInput || !tonsInput) return;
@@ -529,6 +531,12 @@ function openEditScheduleModal(scheduleItem) {
   const loadingDate = new Date(scheduleItem.loadingDate);
   dateInput.value = loadingDate.toISOString().split('T')[0];
   tonsInput.value = scheduleItem.requiredTons || 0;
+  if (clientPriceInput) {
+    clientPriceInput.value = scheduleItem.clientPrice != null ? scheduleItem.clientPrice : "";
+  }
+  if (ourPriceInput) {
+    ourPriceInput.value = scheduleItem.ourPrice != null ? scheduleItem.ourPrice : "";
+  }
   if (commentInput) {
     commentInput.value = scheduleItem.comment || "";
   }
@@ -542,6 +550,8 @@ async function onEditScheduleSubmit(e) {
 
   const dateInput = document.getElementById("editScheduleDateInput");
   const tonsInput = document.getElementById("editScheduleTonsInput");
+  const clientPriceInput = document.getElementById("editScheduleClientPriceInput");
+  const ourPriceInput = document.getElementById("editScheduleOurPriceInput");
   const commentInput = document.getElementById("editScheduleCommentInput");
 
   if (!dateInput || !tonsInput) return;
@@ -551,6 +561,8 @@ async function onEditScheduleSubmit(e) {
   const [year, month, day] = dateValue.split('-').map(Number);
   const loadingDate = new Date(year, month - 1, day, 12, 0, 0); // 12:00 для избежания проблем с часовыми поясами
   const requiredTons = Number(tonsInput.value) || 0;
+  const clientPrice = clientPriceInput ? Number(clientPriceInput.value) || null : null;
+  const ourPrice = ourPriceInput ? Number(ourPriceInput.value) || null : null;
   const comment = commentInput ? commentInput.value.trim() : "";
 
   if (requiredTons <= 0) {
@@ -573,6 +585,8 @@ async function onEditScheduleSubmit(e) {
       loadingDate: loadingDate.toISOString(),
       requiredTons,
       comment,
+      clientPrice: clientPrice !== null ? clientPrice : undefined,
+      ourPrice: ourPrice !== null ? ourPrice : undefined,
     };
 
     const res = await fetch(`${API_BASE}/schedule/${editingScheduleId}`, {
@@ -632,6 +646,8 @@ function openAssignModal(order) {
   const modal = document.getElementById("assignOrderModal");
   const dateInput = document.getElementById("assignDateInput");
   const tonsInput = document.getElementById("assignTonsInput");
+  const clientPriceInput = document.getElementById("assignClientPriceInput");
+  const ourPriceInput = document.getElementById("assignOurPriceInput");
   const commentInput = document.getElementById("assignCommentInput");
 
   if (!modal || !dateInput) return;
@@ -641,6 +657,8 @@ function openAssignModal(order) {
   dateInput.value = today.toISOString().split('T')[0];
   
   if (tonsInput) tonsInput.value = "";
+  if (clientPriceInput) clientPriceInput.value = "";
+  if (ourPriceInput) ourPriceInput.value = "";
   if (commentInput) commentInput.value = "";
 
   modal.classList.remove("hidden");
@@ -652,6 +670,8 @@ async function onAssignOrderSubmit(e) {
 
   const dateInput = document.getElementById("assignDateInput");
   const tonsInput = document.getElementById("assignTonsInput");
+  const clientPriceInput = document.getElementById("assignClientPriceInput");
+  const ourPriceInput = document.getElementById("assignOurPriceInput");
   const commentInput = document.getElementById("assignCommentInput");
 
   if (!dateInput || !tonsInput) return;
@@ -661,6 +681,8 @@ async function onAssignOrderSubmit(e) {
   const [year, month, day] = dateValue.split('-').map(Number);
   const loadingDate = new Date(year, month - 1, day, 12, 0, 0); // 12:00 для избежания проблем с часовыми поясами
   const requiredTons = Number(tonsInput.value) || 0;
+  const clientPrice = clientPriceInput ? Number(clientPriceInput.value) || null : null;
+  const ourPrice = ourPriceInput ? Number(ourPriceInput.value) || null : null;
   const comment = commentInput ? commentInput.value.trim() : "";
 
   if (requiredTons <= 0) {
@@ -685,6 +707,8 @@ async function onAssignOrderSubmit(e) {
       requiredTons,
       shippedTons: 0,
       comment,
+      clientPrice: clientPrice !== null ? clientPrice : undefined,
+      ourPrice: ourPrice !== null ? ourPrice : undefined,
     };
 
     const res = await fetch(`${API_BASE}/schedule`, {
@@ -775,24 +799,22 @@ function renderOrdersTable(orders) {
     }
 
     const tdId      = document.createElement("td");
+    const tdClient  = document.createElement("td");
     const tdCargo   = document.createElement("td");
-    const tdPrice   = document.createElement("td");
     const tdFrom    = document.createElement("td");
     const tdTo      = document.createElement("td");
     const tdDistance = document.createElement("td");
     const tdNorm    = document.createElement("td");
-    const tdVolume  = document.createElement("td");
     const tdComment = document.createElement("td");
     const tdAct     = document.createElement("td");
 
     tdId.textContent      = index + 1;
+    tdClient.textContent  = order.client || "";
     tdCargo.textContent   = order.cargo || "";
-    tdPrice.textContent   = order.pricePerTon != null ? order.pricePerTon : "";
     tdFrom.textContent    = order.from || "";
     tdTo.textContent      = order.to || "";
     tdDistance.textContent = order.distanceKm != null ? order.distanceKm + " км" : "";
     tdNorm.textContent    = order.norm || "";
-    tdVolume.textContent  = order.volume != null ? order.volume : "";
     tdComment.textContent = order.comment || "";
 
     if (isAdmin) {
@@ -829,13 +851,12 @@ function renderOrdersTable(orders) {
     }
 
     tr.appendChild(tdId);
+    tr.appendChild(tdClient);
     tr.appendChild(tdCargo);
-    tr.appendChild(tdPrice);
     tr.appendChild(tdFrom);
     tr.appendChild(tdTo);
     tr.appendChild(tdDistance);
     tr.appendChild(tdNorm);
-    tr.appendChild(tdVolume);
     tr.appendChild(tdComment);
     tr.appendChild(tdAct);
 
@@ -1063,6 +1084,7 @@ async function onAddOrderSubmit(e) {
 
   const fromInput    = document.getElementById("fromInput");
   const toInput      = document.getElementById("toInput");
+  const clientInput  = document.getElementById("clientInput");
   const cargoInput   = document.getElementById("cargoInput");
   const priceInput   = document.getElementById("priceInput");
   const normInput    = document.getElementById("normInput");
@@ -1071,6 +1093,7 @@ async function onAddOrderSubmit(e) {
 
   const from    = fromInput?.value.trim() || "";
   const to      = toInput?.value.trim() || "";
+  const client  = clientInput?.value.trim() || "";
   const cargo   = cargoInput?.value.trim() || "";
   const price   = Number(priceInput?.value) || 0;
   const norm    = normInput?.value.trim() || "";
@@ -1105,6 +1128,7 @@ async function onAddOrderSubmit(e) {
     const newOrder = {
       from,
       to,
+      client,
       cargo,
       pricePerTon: price,
       distanceKm,
@@ -1134,6 +1158,7 @@ async function onAddOrderSubmit(e) {
 
     fromInput.value    = "";
     toInput.value      = "";
+    if (clientInput)      clientInput.value      = "";
     cargoInput.value   = "";
     priceInput.value   = "";
     if (normInput)        normInput.value        = "";
@@ -1196,6 +1221,11 @@ function openEditModal(order) {
     editToInput.value = order.to || "";
   }
   
+  const editClientInput = document.getElementById("editClientInput");
+  if (editClientInput) {
+    editClientInput.value = order.client || "";
+  }
+  
   document.getElementById("editCargoInput").value  = order.cargo || "";
   document.getElementById("editPriceInput").value  =
     order.pricePerTon != null ? order.pricePerTon : "";
@@ -1237,6 +1267,7 @@ async function onEditOrderSubmit(e) {
 
   const fromInput        = document.getElementById("editFromInput");
   const toInput          = document.getElementById("editToInput");
+  const clientInput      = document.getElementById("editClientInput");
   const cargoInput       = document.getElementById("editCargoInput");
   const priceInput       = document.getElementById("editPriceInput");
   const distanceInput    = document.getElementById("editDistanceInput");
@@ -1247,6 +1278,7 @@ async function onEditOrderSubmit(e) {
 
   const from        = fromInput.value.trim();
   const to          = toInput.value.trim();
+  const client      = clientInput ? clientInput.value.trim() : "";
   const cargo       = cargoInput.value.trim();
   const price       = Number(priceInput.value) || 0;
   const distance    = distanceInput.value ? Number(distanceInput.value) : null;
@@ -1262,6 +1294,7 @@ async function onEditOrderSubmit(e) {
   const updated = {
     from,
     to,
+    client,
     cargo,
     pricePerTon: price,
     distanceKm: distance,
@@ -1557,10 +1590,10 @@ function initCalendar() {
             <div class="info-grid">
               <div><strong>Поставщик:</strong> ${order.from || "Не указан"}</div>
               <div><strong>Выгрузка:</strong> ${order.to || "Не указана"}</div>
-              ${order.pricePerTon ? `<div><strong>Цена:</strong> ${order.pricePerTon} ₽/т</div>` : ''}
+              ${item.clientPrice != null ? `<div><strong>Цена клиента:</strong> ${item.clientPrice} ₽/т</div>` : ''}
+              ${item.ourPrice != null ? `<div><strong>Наша цена:</strong> ${item.ourPrice} ₽/т</div>` : ''}
               ${order.distanceKm ? `<div><strong>Расстояние:</strong> ${order.distanceKm} км</div>` : ''}
               ${order.norm ? `<div><strong>Тип загрузки:</strong> ${order.norm}</div>` : ''}
-              ${order.volume ? `<div><strong>Объём:</strong> ${order.volume}</div>` : ''}
               ${order.comment ? `<div><strong>Комментарий к заявке:</strong> ${order.comment}</div>` : ''}
             </div>
           </div>
@@ -2066,6 +2099,7 @@ function renderActivities() {
     
     if (activity.orderId && typeof activity.orderId === 'object') {
       const order = activity.orderId;
+      if (order.client) details.push(`<strong>Клиент:</strong> ${order.client}`);
       if (order.from) details.push(`<strong>Откуда:</strong> ${order.from}`);
       if (order.to) details.push(`<strong>Куда:</strong> ${order.to}`);
       if (order.cargo) details.push(`<strong>Груз:</strong> ${order.cargo}`);
@@ -2094,6 +2128,12 @@ function renderActivities() {
         details.push(`<strong>Отправлено:</strong> ${schedule.shippedTons.toFixed(2)} т`);
         const remaining = (schedule.requiredTons || 0) - (schedule.shippedTons || 0);
         details.push(`<strong>Остаток:</strong> ${remaining.toFixed(2)} т`);
+      }
+      if (schedule.clientPrice != null) {
+        details.push(`<strong>Цена клиента:</strong> ${schedule.clientPrice} ₽/т`);
+      }
+      if (schedule.ourPrice != null) {
+        details.push(`<strong>Наша цена:</strong> ${schedule.ourPrice} ₽/т`);
       }
     }
 

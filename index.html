@@ -92,6 +92,10 @@
           <input type="text" id="toInput" placeholder="Город, адрес выгрузки" required>
         </label>
         <label>
+          Клиент:
+          <input type="text" id="clientInput" placeholder="Название клиента">
+        </label>
+        <label>
           Груз:
           <input type="text" id="cargoInput" placeholder="Тип груза" required>
         </label>
@@ -172,13 +176,12 @@
     <thead>
   <tr>
     <th>ID</th>
+    <th>Клиент</th>
     <th>Груз</th>
-    <th>Цена, ₽/т</th>
     <th>Загрузка</th>
     <th>Выгрузка</th>
     <th>Расстояние</th>
     <th>Тип загрузки</th>
-    <th>Объём</th>
     <th>Комментарий</th>
     <th class="actions-header">Действия</th>
   </tr>
@@ -258,6 +261,16 @@
            </label>
          </div>
          <div class="form-row">
+           <label>
+             Цена клиента, ₽/т:
+             <input type="number" id="assignClientPriceInput" min="0" step="0.01">
+           </label>
+           <label>
+             Наша цена, ₽/т:
+             <input type="number" id="assignOurPriceInput" min="0" step="0.01">
+           </label>
+         </div>
+         <div class="form-row">
            <label style="flex:1;">
              Комментарий:
              <input type="text" id="assignCommentInput" placeholder="Комментарий к назначению">
@@ -285,6 +298,16 @@
            <label>
              Необходимое количество тонн:
              <input type="number" id="editScheduleTonsInput" min="0" step="0.01" required>
+           </label>
+         </div>
+         <div class="form-row">
+           <label>
+             Цена клиента, ₽/т:
+             <input type="number" id="editScheduleClientPriceInput" min="0" step="0.01">
+           </label>
+           <label>
+             Наша цена, ₽/т:
+             <input type="number" id="editScheduleOurPriceInput" min="0" step="0.01">
            </label>
          </div>
          <div class="form-row">
@@ -331,14 +354,20 @@
 
       <div class="form-row">
         <label>
+          Клиент:
+          <input type="text" id="editClientInput" placeholder="Название клиента">
+        </label>
+        <label>
           Груз:
           <input type="text" id="editCargoInput" required>
         </label>
+      </div>
+
+      <div class="form-row">
         <label>
           Цена, ₽/т:
           <input type="number" id="editPriceInput" required>
         </label>
-      </div>
 
       <div class="form-row">
         <label>

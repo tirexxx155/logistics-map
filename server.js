@@ -48,6 +48,7 @@ const orderSchema = new mongoose.Schema(
     volume: String,
     comment: String,          // <-- новое поле
     loadingDate: Date,        // <-- дата загрузки для календаря
+    client: String,           // <-- клиент
   },
   { timestamps: true }
 );
@@ -65,6 +66,8 @@ const scheduleItemSchema = new mongoose.Schema(
     shippedTons: { type: Number, default: 0 },      // отправленное количество тонн
     comment: String,                                 // комментарий для этой даты
     logistician: String,                             // логист, который отправляет тонны
+    clientPrice: Number,                             // цена клиента
+    ourPrice: Number,                                // наша цена
   },
   { timestamps: true }
 );
@@ -243,10 +246,11 @@ app.post('/api/orders', requireAdmin, async (req, res) => {
     
     // Отправляем в Telegram
     await sendToTelegram(`🆕 <b>Новая заявка</b>\n\n` +
+      `${saved.client ? `Клиент: ${saved.client}\n` : ''}` +
       `Груз: ${saved.cargo || 'Не указан'}\n` +
       `Откуда: ${saved.from || 'Не указано'}\n` +
       `Куда: ${saved.to || 'Не указано'}\n` +
-      `${saved.pricePerTon ? `Цена: ${saved.pricePerTon} ₽/т\n` : ''}` +
+      `${saved.norm ? `Тип загрузки: ${saved.norm}\n` : ''}` +
       `${saved.distanceKm ? `Расстояние: ${saved.distanceKm} км` : ''}`);
     
     res.status(201).json(saved);
@@ -281,9 +285,12 @@ app.put('/api/orders/:id', requireAdmin, async (req, res) => {
     
     // Отправляем в Telegram
     await sendToTelegram(`✏️ <b>Заявка обновлена</b>\n\n` +
+      `${updated.client ? `Клиент: ${updated.client}\n` : ''}` +
       `Груз: ${updated.cargo || 'Не указан'}\n` +
       `Откуда: ${updated.from || 'Не указано'}\n` +
-      `Куда: ${updated.to || 'Не указано'}`);
+      `Куда: ${updated.to || 'Не указано'}\n` +
+      `${updated.norm ? `Тип загрузки: ${updated.norm}\n` : ''}` +
+      `${updated.distanceKm ? `Расстояние: ${updated.distanceKm} км` : ''}`);
     
     res.json(updated);
   } catch (err) {
@@ -366,9 +373,10 @@ app.post('/api/schedule', requireAdmin, async (req, res) => {
     // Создаем запись активности
     const order = populated.orderId;
     const loadingDate = new Date(populated.loadingDate).toLocaleDateString('ru-RU');
+    const clientInfo = order.client ? ` (Клиент: ${order.client})` : '';
     const activity = new Activity({
       type: 'schedule_created',
-      message: `Появилась новая загрузка на ${loadingDate}: ${order.cargo || 'Груз'} (${populated.requiredTons} т) от ${order.from || 'Поставщик'}`,
+      message: `Появилась новая загрузка на ${loadingDate}: ${order.cargo || 'Груз'} (${populated.requiredTons} т) от ${order.from || 'Поставщик'}${clientInfo}`,
       orderId: order._id,
       scheduleId: populated._id,
       date: populated.loadingDate,
@@ -378,11 +386,14 @@ app.post('/api/schedule', requireAdmin, async (req, res) => {
     
     // Отправляем в Telegram
     await sendToTelegram(`📅 <b>Новая загрузка</b>\n\n` +
+      `${order.client ? `Клиент: ${order.client}\n` : ''}` +
       `Дата: ${loadingDate}\n` +
       `Груз: ${order.cargo || 'Не указан'}\n` +
       `Откуда: ${order.from || 'Не указано'}\n` +
       `Куда: ${order.to || 'Не указано'}\n` +
-      `Необходимо: ${populated.requiredTons} т`);
+      `Необходимо: ${populated.requiredTons} т\n` +
+      `${populated.clientPrice != null ? `Цена клиента: ${populated.clientPrice} ₽/т\n` : ''}` +
+      `${populated.ourPrice != null ? `Наша цена: ${populated.ourPrice} ₽/т` : ''}`);
     
     res.status(201).json(populated);
   } catch (err) {
@@ -456,13 +467,17 @@ app.put('/api/schedule/:id', async (req, res) => {
       // Отправляем в Telegram
       if (activityType === 'schedule_completed') {
         await sendToTelegram(`✅ <b>Загрузка полностью выполнена</b>\n\n` +
+          `${order.client ? `Клиент: ${order.client}\n` : ''}` +
           `Дата: ${loadingDate}\n` +
           `Груз: ${order.cargo || 'Не указан'}\n` +
           `Откуда: ${order.from || 'Не указано'}\n` +
           `Куда: ${order.to || 'Не указано'}\n` +
-          `Отправлено: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т`);
+          `Отправлено: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т\n` +
+          `${updated.clientPrice != null ? `Цена клиента: ${updated.clientPrice} ₽/т\n` : ''}` +
+          `${updated.ourPrice != null ? `Наша цена: ${updated.ourPrice} ₽/т` : ''}`);
       } else {
         await sendToTelegram(`🚚 <b>Отправил груз</b>\n\n` +
+          `${order.client ? `Клиент: ${order.client}\n` : ''}` +
           `Логист: ${logistician || 'Не указан'}\n` +
           `Дата: ${loadingDate}\n` +
           `Груз: ${order.cargo || 'Не указан'}\n` +
@@ -470,7 +485,9 @@ app.put('/api/schedule/:id', async (req, res) => {
           `Куда: ${order.to || 'Не указано'}\n` +
           `Отправлено: ${tonsDiff.toFixed(2)} т\n` +
           `Всего: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т\n` +
-          `Остаток: ${(updated.requiredTons - updated.shippedTons).toFixed(2)} т`);
+          `Остаток: ${(updated.requiredTons - updated.shippedTons).toFixed(2)} т\n` +
+          `${updated.clientPrice != null ? `Цена клиента: ${updated.clientPrice} ₽/т\n` : ''}` +
+          `${updated.ourPrice != null ? `Наша цена: ${updated.ourPrice} ₽/т` : ''}`);
       }
     }
     
