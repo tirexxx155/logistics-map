@@ -393,7 +393,8 @@ app.post('/api/schedule', requireAdmin, async (req, res) => {
       `Куда: ${order.to || 'Не указано'}\n` +
       `Необходимо: ${populated.requiredTons} т\n` +
       `${populated.clientPrice != null ? `Цена клиента: ${populated.clientPrice} ₽/т\n` : ''}` +
-      `${populated.ourPrice != null ? `Наша цена: ${populated.ourPrice} ₽/т` : ''}`);
+      `${populated.ourPrice != null ? `Наша цена: ${populated.ourPrice} ₽/т\n` : ''}` +
+      `${populated.comment ? `Комментарий: ${populated.comment}` : ''}`);
     
     res.status(201).json(populated);
   } catch (err) {
@@ -474,7 +475,8 @@ app.put('/api/schedule/:id', async (req, res) => {
           `Куда: ${order.to || 'Не указано'}\n` +
           `Отправлено: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т\n` +
           `${updated.clientPrice != null ? `Цена клиента: ${updated.clientPrice} ₽/т\n` : ''}` +
-          `${updated.ourPrice != null ? `Наша цена: ${updated.ourPrice} ₽/т` : ''}`);
+          `${updated.ourPrice != null ? `Наша цена: ${updated.ourPrice} ₽/т\n` : ''}` +
+          `${updated.comment ? `Комментарий: ${updated.comment}` : ''}`);
       } else {
         await sendToTelegram(`🚚 <b>Отправил груз</b>\n\n` +
           `${order.client ? `Клиент: ${order.client}\n` : ''}` +
@@ -487,7 +489,8 @@ app.put('/api/schedule/:id', async (req, res) => {
           `Всего: ${updated.shippedTons.toFixed(2)} т из ${updated.requiredTons.toFixed(2)} т\n` +
           `Остаток: ${(updated.requiredTons - updated.shippedTons).toFixed(2)} т\n` +
           `${updated.clientPrice != null ? `Цена клиента: ${updated.clientPrice} ₽/т\n` : ''}` +
-          `${updated.ourPrice != null ? `Наша цена: ${updated.ourPrice} ₽/т` : ''}`);
+          `${updated.ourPrice != null ? `Наша цена: ${updated.ourPrice} ₽/т\n` : ''}` +
+          `${updated.comment ? `Комментарий: ${updated.comment}` : ''}`);
       }
     }
     

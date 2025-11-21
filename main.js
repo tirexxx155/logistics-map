@@ -140,8 +140,6 @@ window.addEventListener("resize", refreshMapSize);
 function setupUi() {
   const applyFilterBtn   = document.getElementById("applyFilter");
   const resetFilterBtn   = document.getElementById("resetFilter");
-  const toggleSidebarBtn = document.getElementById("toggleSidebar");
-  const toggleFormBtn    = document.getElementById("toggleForm");
   const addOrderForm     = document.getElementById("addOrderForm");
   const editOrderForm    = document.getElementById("editOrderForm");
   const editCancelBtn    = document.getElementById("editCancelBtn");
@@ -168,42 +166,30 @@ function setupUi() {
 }
 
 
-  if (toggleSidebarBtn) {
-    toggleSidebarBtn.addEventListener("click", () => {
+  const toggleSidebarCheckbox = document.getElementById("toggleSidebar");
+  if (toggleSidebarCheckbox) {
+    toggleSidebarCheckbox.addEventListener("change", () => {
       const sidebar = document.getElementById("sidebar");
       if (!sidebar) return;
-      sidebar.classList.toggle("hidden");
-      toggleSidebarBtn.textContent = sidebar.classList.contains("hidden")
-        ? "Показать список заявок"
-        : "Свернуть список заявок";
-
+      sidebar.classList.toggle("hidden", !toggleSidebarCheckbox.checked);
       refreshMapSize();
     });
   }
 
-  if (toggleFormBtn) {
-    toggleFormBtn.addEventListener("click", () => {
+  const toggleFormCheckbox = document.getElementById("toggleForm");
+  if (toggleFormCheckbox) {
+    toggleFormCheckbox.addEventListener("change", () => {
       const addOrderSection = document.querySelector(".add-order");
       const addDriverSection = document.querySelector(".add-driver");
       if (!addOrderSection) return;
       
-      const isHidden = addOrderSection.classList.contains("hidden");
-      addOrderSection.classList.toggle("hidden");
+      const isVisible = toggleFormCheckbox.checked;
+      addOrderSection.classList.toggle("hidden", !isVisible);
       
-      // Сворачиваем/разворачиваем и форму водителя вместе с формой заявок
+      // Сворачиваем/разворачиваем форму водителя вместе с формой заявок
       if (addDriverSection) {
-        if (isHidden) {
-          // Если форма заявок была скрыта, показываем форму водителя
-          addDriverSection.classList.remove("hidden");
-        } else {
-          // Если форма заявок была видна, скрываем форму водителя
-          addDriverSection.classList.add("hidden");
-        }
+        addDriverSection.classList.toggle("hidden", !isVisible);
       }
-      
-      toggleFormBtn.textContent = addOrderSection.classList.contains("hidden")
-        ? "Показать форму заявок"
-        : "Свернуть форму заявок";
 
       refreshMapSize();
     });
@@ -231,15 +217,14 @@ function setupUi() {
     addDriverForm.addEventListener("submit", onAddDriverSubmit);
   }
   
-  // Кнопка переключения видимости водителей
-  const toggleDriversBtn = document.getElementById("toggleDrivers");
-  if (toggleDriversBtn) {
-    // Устанавливаем начальное состояние кнопки
-    toggleDriversBtn.textContent = showDrivers ? "Скрыть водителей" : "Показать водителей";
+  // Переключатель видимости водителей
+  const toggleDriversCheckbox = document.getElementById("toggleDrivers");
+  if (toggleDriversCheckbox) {
+    // Устанавливаем начальное состояние
+    toggleDriversCheckbox.checked = showDrivers;
     
-    toggleDriversBtn.addEventListener("click", () => {
-      showDrivers = !showDrivers;
-      toggleDriversBtn.textContent = showDrivers ? "Скрыть водителей" : "Показать водителей";
+    toggleDriversCheckbox.addEventListener("change", () => {
+      showDrivers = toggleDriversCheckbox.checked;
       renderDrivers();
     });
   }
@@ -325,7 +310,6 @@ function restoreAdminState() {
 function updateAdminUi() {
   const adminBtn        = document.getElementById("adminLoginBtn");
   const addOrderSection = document.querySelector(".add-order");
-  const toggleFormBtn   = document.getElementById("toggleForm");
   const actionsHeader   = document.querySelector("#ordersTable thead th:last-child");
 
   // текст на кнопке входа/выхода
@@ -340,9 +324,10 @@ function updateAdminUi() {
     addOrderSection.style.display = isAdmin ? "" : "none";
   }
 
-  // кнопка "Свернуть форму" только для админа
-  if (toggleFormBtn) {
-    toggleFormBtn.style.display = isAdmin ? "" : "none";
+  // переключатель "Форма заявок" только для админа
+  const toggleFormLabel = document.getElementById("toggleFormLabel");
+  if (toggleFormLabel) {
+    toggleFormLabel.style.display = isAdmin ? "" : "none";
   }
   
   // форма добавления водителей только для админа
@@ -351,10 +336,10 @@ function updateAdminUi() {
     addDriverSection.style.display = isAdmin ? "" : "none";
   }
   
-  // кнопка переключения водителей только для админа
-  const toggleDriversBtn = document.getElementById("toggleDrivers");
-  if (toggleDriversBtn) {
-    toggleDriversBtn.style.display = isAdmin ? "" : "none";
+  // переключатель водителей только для админа
+  const toggleDriversLabel = document.getElementById("toggleDriversLabel");
+  if (toggleDriversLabel) {
+    toggleDriversLabel.style.display = isAdmin ? "" : "none";
   }
 
   // заголовок столбца "Действия" (последний th)

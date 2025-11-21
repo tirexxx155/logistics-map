@@ -65,10 +65,15 @@ body {
 /* ШАПКА */
 
 .app-header {
-    padding: 12px 24px 12px;
+    padding: 16px 24px;
     background: #ffffff;
     border-bottom: 1px solid #e5e7eb;
-    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
 }
 
 .header-top {
@@ -178,8 +183,80 @@ body {
 .panel-toggles {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 16px;
     margin-left: auto;
+    align-items: center;
+}
+
+/* iOS-style Toggle Switch */
+.ios-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #374151;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ios-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.ios-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.ios-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 26px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ios-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+input:checked + .ios-toggle-slider {
+    background-color: #fbbf24;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+input:checked + .ios-toggle-slider:before {
+    transform: translateX(18px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.ios-toggle-switch:active .ios-toggle-slider:before {
+    width: 24px;
+}
+
+.ios-toggle-switch input:disabled + .ios-toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* ФОРМА ДОБАВЛЕНИЯ ЗАЯВКИ */
@@ -329,6 +406,70 @@ body {
     margin: 0 0 8px;
     font-size: 15px;
     font-weight: 600;
+}
+
+/* macOS-style скроллбары */
+#sidebar::-webkit-scrollbar,
+#ordersTable::-webkit-scrollbar,
+.activity-list::-webkit-scrollbar,
+.day-orders-list::-webkit-scrollbar,
+#calendarView::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+}
+
+#sidebar::-webkit-scrollbar-track,
+#ordersTable::-webkit-scrollbar-track,
+.activity-list::-webkit-scrollbar-track,
+.day-orders-list::-webkit-scrollbar-track,
+#calendarView::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#sidebar::-webkit-scrollbar-thumb,
+#ordersTable::-webkit-scrollbar-thumb,
+.activity-list::-webkit-scrollbar-thumb,
+.day-orders-list::-webkit-scrollbar-thumb,
+#calendarView::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s ease;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover,
+#ordersTable::-webkit-scrollbar-thumb:hover,
+.activity-list::-webkit-scrollbar-thumb:hover,
+.day-orders-list::-webkit-scrollbar-thumb:hover,
+#calendarView::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.35);
+    background-clip: padding-box;
+}
+
+#sidebar::-webkit-scrollbar-thumb:active,
+#ordersTable::-webkit-scrollbar-thumb:active,
+.activity-list::-webkit-scrollbar-thumb:active,
+.day-orders-list::-webkit-scrollbar-thumb:active,
+#calendarView::-webkit-scrollbar-thumb:active,
+.modal-content::-webkit-scrollbar-thumb:active {
+    background: rgba(0, 0, 0, 0.5);
+    background-clip: padding-box;
+}
+
+/* Firefox */
+#sidebar,
+#ordersTable,
+.activity-list,
+.day-orders-list,
+#calendarView,
+.modal-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
 /* Таблица */
@@ -640,6 +781,11 @@ body.sidebar-resize-active {
 
 /* ----- КАЛЕНДАРЬ ----- */
 
+/* Скрываем формы при просмотре календаря */
+body.calendar-view-active .header-section.forms-container {
+    display: none !important;
+}
+
 #calendarView {
     padding: 16px 24px 24px;
     display: flex;
@@ -647,6 +793,7 @@ body.sidebar-resize-active {
     height: 100%;
     min-height: 0;
     flex: 1;
+    overflow: hidden;
 }
 
 .calendar-layout {
@@ -660,73 +807,119 @@ body.sidebar-resize-active {
 .calendar-wrapper {
     flex: 1;
     background: #ffffff;
-    border-radius: 12px;
+    border-radius: 16px;
     border: 1px solid #e5e7eb;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-    padding: 12px 16px 16px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+    padding: 20px;
     min-width: 500px;
     display: flex;
     flex-direction: column;
+    transition: box-shadow 0.3s ease;
+}
+
+.calendar-wrapper:hover {
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
 }
 
 #calendarControls {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f3f4f6;
 }
 
 .calendar-title {
+    font-weight: 700;
+    font-size: 18px;
+    color: #111827;
+    letter-spacing: -0.01em;
+}
+
+#calendarControls button {
+    padding: 6px 14px;
+    font-size: 13px;
     font-weight: 600;
-    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#calendarControls button:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #calendar {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
+    border-collapse: separate;
+    border-spacing: 4px;
+    font-size: 13px;
     text-align: center;
     flex: 1;
 }
 
 #calendar th,
 #calendar td {
-    border: 1px solid #e5e7eb;
-    padding: 4px 0;
+    border: none;
+    padding: 8px 4px;
     width: 14.28%;
     color: #111827;
-    min-height: 24px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
 #calendar th {
-    background: #f3f4f6;
-    font-weight: 600;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    font-weight: 700;
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 4px;
+    border-bottom: 2px solid #e5e7eb;
 }
 
 #calendar td.calendar-day {
     cursor: default;
-    color: #111827;
+    color: #9ca3af;
+    background: #ffffff;
 }
 
 #calendar td {
-    height: 32px;
-    vertical-align: middle;
-    line-height: 24px;
-}
-
-#calendar td.calendar-today {
-    background: #fef3c7;
-    font-weight: 600;
-}
-
-#calendar td.calendar-has-orders {
-    background: #dbeafe;
+    height: 80px;
+    vertical-align: top;
+    line-height: 1.4;
     position: relative;
 }
 
+#calendar td.calendar-today {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    font-weight: 700;
+    color: #92400e;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+    border: 2px solid #fbbf24;
+}
+
+#calendar td.calendar-has-orders {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    position: relative;
+    cursor: pointer;
+    font-weight: 600;
+}
+
 #calendar td.calendar-has-orders:hover {
-    background: #bfdbfe;
+    background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    z-index: 5;
 }
 
 .calendar-day-container {
@@ -734,30 +927,42 @@ body.sidebar-resize-active {
     flex-direction: column;
     height: 100%;
     min-height: 60px;
-    padding: 2px;
+    padding: 6px;
+    gap: 4px;
 }
 
 .calendar-day-number {
-    font-weight: 600;
-    font-size: 13px;
-    margin-bottom: 2px;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+    line-height: 1.2;
 }
 
 .calendar-orders-info {
-    font-size: 10px;
-    line-height: 1.2;
+    font-size: 11px;
+    line-height: 1.4;
     margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .calendar-orders-count {
-    color: #1e40af;
-    font-weight: 600;
+    color: #92400e;
+    font-weight: 700;
+    background: rgba(245, 158, 11, 0.2);
+    padding: 2px 6px;
+    border-radius: 12px;
+    display: inline-block;
+    width: fit-content;
+    margin: 0 auto;
 }
 
 .calendar-orders-volume {
     color: #059669;
-    font-weight: 500;
-    margin-top: 1px;
+    font-weight: 600;
+    margin-top: 2px;
+    font-size: 10px;
 }
 
 /* Стили для модального окна с заявками на день */
@@ -1093,13 +1298,16 @@ body.sidebar-resize-active {
 /* ======================== ТЕМНАЯ ТЕМА ======================== */
 
 body.dark-theme {
-    background: #1a1f2e;
-    color: #e8eaed;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    background-attachment: fixed;
+    color: #e2e8f0;
 }
 
 body.dark-theme .app-header {
-    background: #252b3a;
-    border-bottom: 1px solid #3a4150;
+    background: rgba(30, 41, 59, 0.8);
+    border-bottom: 1px solid rgba(71, 85, 105, 0.5);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 body.dark-theme .header-section {
@@ -1112,13 +1320,15 @@ body.dark-theme .forms-container {
 }
 
 body.dark-theme .add-order {
-    background: #252b3a;
-    border: 1px solid #3a4150;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    backdrop-filter: blur(10px);
 }
 
 body.dark-theme .add-driver {
-    background: #252b3a;
-    border: 1px solid #3a4150;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    backdrop-filter: blur(10px);
 }
 
 body.dark-theme .add-driver h2 {
@@ -1141,9 +1351,59 @@ body.dark-theme .add-driver input:focus {
 }
 
 body.dark-theme #sidebar {
-    background: #252b3a;
-    border-right: 1px solid #3a4150;
-    color: #e8eaed;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(51, 65, 85, 0.7) 100%);
+    border-right: 1px solid rgba(71, 85, 105, 0.5);
+    color: #e2e8f0;
+    backdrop-filter: blur(10px);
+}
+
+body.dark-theme #sidebar::-webkit-scrollbar-track,
+body.dark-theme #ordersTable::-webkit-scrollbar-track,
+body.dark-theme .activity-list::-webkit-scrollbar-track,
+body.dark-theme .day-orders-list::-webkit-scrollbar-track,
+body.dark-theme #calendarView::-webkit-scrollbar-track,
+body.dark-theme .modal-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body.dark-theme #sidebar::-webkit-scrollbar-thumb,
+body.dark-theme #ordersTable::-webkit-scrollbar-thumb,
+body.dark-theme .activity-list::-webkit-scrollbar-thumb,
+body.dark-theme .day-orders-list::-webkit-scrollbar-thumb,
+body.dark-theme #calendarView::-webkit-scrollbar-thumb,
+body.dark-theme .modal-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+body.dark-theme #sidebar::-webkit-scrollbar-thumb:hover,
+body.dark-theme #ordersTable::-webkit-scrollbar-thumb:hover,
+body.dark-theme .activity-list::-webkit-scrollbar-thumb:hover,
+body.dark-theme .day-orders-list::-webkit-scrollbar-thumb:hover,
+body.dark-theme #calendarView::-webkit-scrollbar-thumb:hover,
+body.dark-theme .modal-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+    background-clip: padding-box;
+}
+
+body.dark-theme #sidebar::-webkit-scrollbar-thumb:active,
+body.dark-theme #ordersTable::-webkit-scrollbar-thumb:active,
+body.dark-theme .activity-list::-webkit-scrollbar-thumb:active,
+body.dark-theme .day-orders-list::-webkit-scrollbar-thumb:active,
+body.dark-theme #calendarView::-webkit-scrollbar-thumb:active,
+body.dark-theme .modal-content::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.5);
+    background-clip: padding-box;
+}
+
+body.dark-theme #sidebar,
+body.dark-theme #ordersTable,
+body.dark-theme .activity-list,
+body.dark-theme .day-orders-list,
+body.dark-theme #calendarView,
+body.dark-theme .modal-content {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 body.dark-theme #sidebar h2 {
@@ -1155,21 +1415,24 @@ body.dark-theme #ordersTable {
 }
 
 body.dark-theme #ordersTable th {
-    background: #1f2532;
-    color: #d1d5db;
-    border-color: #3a4150;
+    background: linear-gradient(135deg, #334155 0%, #475569 100%);
+    color: #cbd5e1;
+    border-color: rgba(71, 85, 105, 0.5);
+    font-weight: 700;
 }
 
 body.dark-theme #ordersTable td {
-    border-color: #3a4150;
+    border-color: rgba(71, 85, 105, 0.3);
+    background: rgba(30, 41, 59, 0.4);
 }
 
 body.dark-theme #ordersTable tbody tr:hover {
-    background: #2d3441;
+    background: rgba(51, 65, 85, 0.6);
 }
 
 body.dark-theme #ordersTable tbody tr.row-selected {
-    background: #1e40af;
+    background: rgba(59, 130, 246, 0.3);
+    border-left: 3px solid #3b82f6;
 }
 
 body.dark-theme .btn {
@@ -1235,9 +1498,11 @@ body.dark-theme textarea:focus {
 }
 
 body.dark-theme .modal-content {
-    background: #252b3a;
-    color: #e8eaed;
-    border-color: #3a4150;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.9) 100%);
+    color: #e2e8f0;
+    border-color: rgba(71, 85, 105, 0.5);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 body.dark-theme .modal-backdrop {
@@ -1245,42 +1510,106 @@ body.dark-theme .modal-backdrop {
 }
 
 body.dark-theme .calendar-wrapper {
-    background: #252b3a;
-    border-color: #3a4150;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-color: #475569;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+body.dark-theme .calendar-wrapper:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+body.dark-theme #calendarControls {
+    border-bottom-color: #475569;
+}
+
+body.dark-theme .calendar-title {
+    color: #f1f5f9;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme #calendarControls button {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: #475569;
+    color: #cbd5e1;
+    backdrop-filter: blur(10px);
+}
+
+body.dark-theme #calendarControls button:hover {
+    background: rgba(51, 65, 85, 0.8);
+    border-color: #64748b;
+    color: #e2e8f0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 body.dark-theme #calendar th {
-    background: #1f2532;
-    color: #d1d5db;
-    border-color: #3a4150;
+    background: linear-gradient(135deg, #334155 0%, #475569 100%);
+    color: #cbd5e1;
+    border-bottom-color: #64748b;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 body.dark-theme #calendar td {
-    border-color: #3a4150;
-    color: #e8eaed;
+    border-color: rgba(71, 85, 105, 0.3);
+    color: #e2e8f0;
+    background: rgba(30, 41, 59, 0.4);
 }
 
-body.dark-theme .calendar-today {
-    background: #1e40af;
-    color: #ffffff;
+body.dark-theme #calendar td.calendar-day {
+    color: #94a3b8;
+    background: rgba(30, 41, 59, 0.3);
 }
 
-body.dark-theme .calendar-has-orders {
-    background: #1e40af;
+body.dark-theme #calendar td.calendar-today {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: #1e293b;
+    box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: 2px solid #fcd34d;
+    font-weight: 700;
 }
 
-body.dark-theme .calendar-has-orders:hover {
-    background: #2563eb;
+body.dark-theme #calendar td.calendar-has-orders {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.35) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fef3c7;
+    font-weight: 600;
+}
+
+body.dark-theme #calendar td.calendar-has-orders:hover {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.4) 0%, rgba(245, 158, 11, 0.5) 100%);
+    box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: rgba(251, 191, 36, 0.5);
+    transform: scale(1.05);
+    z-index: 5;
+}
+
+body.dark-theme .calendar-orders-count {
+    color: #fef3c7;
+    background: rgba(251, 191, 36, 0.3);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme .calendar-orders-volume {
+    color: #86efac;
+    font-weight: 600;
 }
 
 body.dark-theme .activity-feed-inline {
-    background: #252b3a;
-    border-color: #3a4150;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(51, 65, 85, 0.7) 100%);
+    border-color: rgba(71, 85, 105, 0.5);
+    backdrop-filter: blur(10px);
 }
 
 body.dark-theme .activity-feed-header {
-    background: #1f2532;
-    border-bottom-color: #3a4150;
+    background: linear-gradient(135deg, #334155 0%, #475569 100%);
+    border-bottom-color: rgba(71, 85, 105, 0.5);
 }
 
 body.dark-theme .activity-feed-header h3 {
@@ -1288,12 +1617,15 @@ body.dark-theme .activity-feed-header h3 {
 }
 
 body.dark-theme .activity-item {
-    background: #1f2532;
-    border-left-color: #4b5563;
+    background: rgba(30, 41, 59, 0.5);
+    border-left-color: #64748b;
+    backdrop-filter: blur(5px);
 }
 
 body.dark-theme .activity-item:hover {
-    background: #2d3441;
+    background: rgba(51, 65, 85, 0.7);
+    transform: translateX(2px);
+    transition: all 0.2s ease;
 }
 
 body.dark-theme .activity-message {
@@ -1360,6 +1692,18 @@ body.dark-theme .stat-item span {
 
 body.dark-theme .brand-subtitle {
     color: #e2e8f0;
+}
+
+body.dark-theme .ios-toggle-label {
+    color: #d1d5db;
+}
+
+body.dark-theme .ios-toggle-slider {
+    background-color: #475569;
+}
+
+body.dark-theme input:checked + .ios-toggle-slider {
+    background-color: #fbbf24;
 }
 
 /* ======================== МОБИЛЬНАЯ ВЕРСИЯ ======================== */
@@ -1463,12 +1807,13 @@ body.dark-theme .brand-subtitle {
     .panel-toggles {
         width: 100%;
         flex-direction: column;
-        gap: 6px;
+        gap: 12px;
+        margin-left: 0;
     }
     
-    .panel-toggles .btn {
+    .ios-toggle-label {
         width: 100%;
-        justify-content: center;
+        justify-content: space-between;
     }
     
     /* Формы */

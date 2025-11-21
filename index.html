@@ -70,9 +70,27 @@
                 <button id="resetFilter" class="btn btn-ghost">Сбросить</button>
 
                 <div class="panel-toggles">
-                    <button id="toggleSidebar" class="btn btn-ghost small">Свернуть список заявок</button>
-                    <button id="toggleForm" class="btn btn-ghost small" style="display: none;">Свернуть форму заявок</button>
-                    <button id="toggleDrivers" class="btn btn-ghost small" style="display: none;">Показать водителей</button>
+                    <label class="ios-toggle-label">
+                        <span>Список заявок</span>
+                        <span class="ios-toggle-switch">
+                            <input type="checkbox" id="toggleSidebar" checked>
+                            <span class="ios-toggle-slider"></span>
+                        </span>
+                    </label>
+                    <label class="ios-toggle-label" style="display: none;" id="toggleFormLabel">
+                        <span>Форма заявок</span>
+                        <span class="ios-toggle-switch">
+                            <input type="checkbox" id="toggleForm" checked>
+                            <span class="ios-toggle-slider"></span>
+                        </span>
+                    </label>
+                    <label class="ios-toggle-label" style="display: none;" id="toggleDriversLabel">
+                        <span>Водители</span>
+                        <span class="ios-toggle-switch">
+                            <input type="checkbox" id="toggleDrivers" checked>
+                            <span class="ios-toggle-slider"></span>
+                        </span>
+                    </label>
                 </div>
             </div>
         </div>
