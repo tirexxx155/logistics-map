@@ -1086,22 +1086,18 @@ async function onAddOrderSubmit(e) {
   const toInput      = document.getElementById("toInput");
   const clientInput  = document.getElementById("clientInput");
   const cargoInput   = document.getElementById("cargoInput");
-  const priceInput   = document.getElementById("priceInput");
   const normInput    = document.getElementById("normInput");
-  const volumeInput  = document.getElementById("volumeInput");
   const commentInput = document.getElementById("commentInput");
 
   const from    = fromInput?.value.trim() || "";
   const to      = toInput?.value.trim() || "";
   const client  = clientInput?.value.trim() || "";
   const cargo   = cargoInput?.value.trim() || "";
-  const price   = Number(priceInput?.value) || 0;
   const norm    = normInput?.value.trim() || "";
-  const volume  = volumeInput?.value.trim() || "";
   const comment = commentInput?.value.trim() || "";
 
-  if (!from || !to || !cargo || !price || !norm) {
-    alert('Заполните поля "Загрузка", "Выгрузка", "Груз", "Цена" и "Тип загрузки".');
+  if (!from || !to || !cargo || !norm) {
+    alert('Заполните поля "Загрузка", "Выгрузка", "Груз" и "Тип загрузки".');
     return;
   }
 
@@ -1130,14 +1126,12 @@ async function onAddOrderSubmit(e) {
       to,
       client,
       cargo,
-      pricePerTon: price,
       distanceKm,
       lat: fromCoords[0],
       lon: fromCoords[1],
       unloadLat: toCoords[0],
       unloadLon: toCoords[1],
       norm,
-      volume,
       comment,
     };
 
@@ -1160,9 +1154,7 @@ async function onAddOrderSubmit(e) {
     toInput.value      = "";
     if (clientInput)      clientInput.value      = "";
     cargoInput.value   = "";
-    priceInput.value   = "";
     if (normInput)        normInput.value        = "";
-    if (volumeInput)      volumeInput.value      = "";
     if (commentInput)     commentInput.value     = "";
 
     await loadOrders();
