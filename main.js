@@ -1,4 +1,4 @@
-// Базовый адрес API (локально -> localhost, в интернете -> /api)
+// Базовый адрес API
 const API_BASE =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
@@ -23,26 +23,24 @@ let assigningOrderId = null; // ID заявки, которую назначае
 let isAdmin = false;
 let adminToken = null;
 
-/* ======================== СТАРТ ======================== */
 
 document.addEventListener("DOMContentLoaded", () => {
   initMap();
   setupUi();
-  setupTabs();      // ← НОВОЕ
-  initCalendar();   // ← НОВОЕ (простой календарь)
-  setupScheduleUi(); // ← НОВОЕ (UI для работы с расписанием)
-  setupActivityFeed(); // ← НОВОЕ (лента активности)
-  initSidebarResizer(); // ← Инициализация resize для сайдбара
+  setupTabs();      
+  initCalendar();   //  (простой календарь)
+  setupScheduleUi(); // 
+  setupActivityFeed(); //  (лента активности)
+  initSidebarResizer(); // 
   restoreAdminState();
   loadOrders();
-  loadSchedule();   // ← НОВОЕ (загрузка расписания)
-  loadActivities(); // ← НОВОЕ (загрузка активности)
-  loadDrivers();    // ← НОВОЕ (загрузка водителей)
-  setupAutoRefresh(); // ← Автоматическое обновление данных
+  loadSchedule();   //  (загрузка расписания)
+  loadActivities(); // (загрузка активности)
+  loadDrivers();    // (загрузка водителей)
+  setupAutoRefresh(); //  Автоматическое обновление данных
 });
 
 
-/* ======================== КАРТА YANDEX ======================== */
 
 function initMap() {
   if (!window.ymaps) {
@@ -56,25 +54,25 @@ function initMap() {
       zoom: 6,
       controls: ["zoomControl", "typeSelector", "fullscreenControl"],
     });
-// Подсказки адресов для полей "Загрузка" и "Выгрузка"
+
     const fromInput = document.getElementById("fromInput");
     const toInput   = document.getElementById("toInput");
     if (fromInput) {
       new ymaps.SuggestView("fromInput", {
         results: 5,
-        boundedBy: [[45, 35], [56, 50]], // Примерные границы России (можно расширить)
+        boundedBy: [[45, 35], [56, 50]], 
         strictBounds: false
       });
     }
     if (toInput) {
       new ymaps.SuggestView("toInput", {
         results: 5,
-        boundedBy: [[45, 35], [56, 50]], // Примерные границы России (можно расширить)
+        boundedBy: [[45, 35], [56, 50]], 
         strictBounds: false
       });
     }
     
-    // Подсказки для полей редактирования (инициализируем сразу, если элементы существуют)
+    // Подсказки для полей редактирования
     const editFromInput = document.getElementById("editFromInput");
     const editToInput = document.getElementById("editToInput");
     if (editFromInput && !editSuggestViewFrom) {
@@ -96,11 +94,11 @@ function initMap() {
     markersLayer = new ymaps.GeoObjectCollection();
     map.geoObjects.add(markersLayer);
     
-    // Коллекция маркеров водителей (зеленые флажки)
+    //  (зеленые флажки)
     driversLayer = new ymaps.GeoObjectCollection();
     map.geoObjects.add(driversLayer);
     
-    // Подсказки для адреса водителя
+
     const driverAddressInput = document.getElementById("driverAddressInput");
     if (driverAddressInput) {
       new ymaps.SuggestView("driverAddressInput", {
@@ -132,10 +130,10 @@ function refreshMapSize() {
   }
 }
 
-// при изменении размера окна — тоже подстроить
+// при изменении размера окна
 window.addEventListener("resize", refreshMapSize);
 
-/* ======================== UI, КНОПКИ, ФОРМЫ ======================== */
+// knopki
 
 function setupUi() {
   const applyFilterBtn   = document.getElementById("applyFilter");
@@ -155,11 +153,11 @@ function setupUi() {
   resetFilterBtn.addEventListener("click", () => {
     const cargoFilter = document.getElementById("cargoFilter");
     const minPrice    = document.getElementById("minPrice");
-    const typeFilter  = document.getElementById("typeFilter"); // ← новый
+    const typeFilter  = document.getElementById("typeFilter"); 
 
     if (cargoFilter) cargoFilter.value = "";
     if (minPrice)    minPrice.value    = "";
-    if (typeFilter)  typeFilter.value  = ""; // ← очищаем тип загрузки
+    if (typeFilter)  typeFilter.value  = ""; // очищаем тип загрузки
 
     applyCurrentFilterAndRender();
   });
@@ -230,7 +228,7 @@ function setupUi() {
   }
 }
 
-/* ======================== ТАБЫ: КАРТА / КАЛЕНДАРЬ ======================== */
+// tablitsi
 
 function setupTabs() {
   const tabMap       = document.getElementById("tab-map");
@@ -296,7 +294,7 @@ function setupTabs() {
   activate("map");
 }
 
-/* ======================== АДМИН-РЕЖИМ ======================== */
+// admin
 
 function restoreAdminState() {
   const stored = localStorage.getItem("adminToken");
@@ -342,7 +340,7 @@ function updateAdminUi() {
     toggleDriversLabel.style.display = isAdmin ? "" : "none";
   }
 
-  // заголовок столбца "Действия" (последний th)
+  // заголовок столбца "Действия" 
   if (actionsHeader) {
     actionsHeader.style.display = isAdmin ? "" : "none";
   }
@@ -394,7 +392,7 @@ async function onAdminLoginClick() {
   }
 }
 
-/* ======================== ЗАГРУЗКА ЗАЯВОК ======================== */
+// zagryzki
 
 async function loadOrders(silent = false) {
   try {
@@ -410,7 +408,7 @@ async function loadOrders(silent = false) {
     applyCurrentFilterAndRender();
     
     // Перезагружаем расписание, чтобы обновить календарь
-    await loadSchedule(silent); // Передаем silent дальше
+    await loadSchedule(silent); 
   } catch (err) {
     console.error(err);
     // Показываем alert только если это не автоматическое обновление
@@ -420,7 +418,7 @@ async function loadOrders(silent = false) {
   }
 }
 
-/* ======================== РАСПИСАНИЕ ЗАГРУЗОК ======================== */
+// raspisanie
 
 async function loadSchedule(silent = false) {
   try {
@@ -461,7 +459,7 @@ function setupScheduleUi() {
     });
   }
 
-  // Закрытие по клику на backdrop
+  // Закрытие 
   if (assignModal) {
     const backdrop = assignModal.querySelector(".modal-backdrop");
     if (backdrop) {
@@ -662,7 +660,7 @@ async function onAssignOrderSubmit(e) {
   if (!dateInput || !tonsInput) return;
 
   // Создаем дату в локальном времени (начало дня)
-  const dateValue = dateInput.value; // формат: YYYY-MM-DD
+  const dateValue = dateInput.value; 
   const [year, month, day] = dateValue.split('-').map(Number);
   const loadingDate = new Date(year, month - 1, day, 12, 0, 0); // 12:00 для избежания проблем с часовыми поясами
   const requiredTons = Number(tonsInput.value) || 0;
@@ -736,7 +734,7 @@ function updateTotalOrdersCounter(total) {
   }
 }
 
-/* ======================== ФИЛЬТР + ОТРИСОВКА ======================== */
+// filtr
 
 function applyCurrentFilterAndRender() {
   const cargoFilterEl = document.getElementById("cargoFilter");
@@ -768,7 +766,7 @@ const typeFilter = typeFilterEl ? typeFilterEl.value.trim() : "";
   renderMarkers(filteredOrders);
 }
 
-/* ======================== ТАБЛИЦА ЗАЯВОК ======================== */
+// zayvki
 
 function renderOrdersTable(orders) {
   const tbody = document.querySelector("#ordersTable tbody");
@@ -778,7 +776,7 @@ function renderOrdersTable(orders) {
 
   orders.forEach((order, index) => {
     const tr = document.createElement("tr");
-    // привязываем строку к id заявки из MongoDB
+    // id заявки из MDB
     if (order._id) {
       tr.dataset.orderId = order._id;
     }
@@ -865,7 +863,7 @@ function renderOrdersTable(orders) {
   // после перерисовки таблицы обновляем отображение для админа/не-админа
   updateAdminUi();
 }
-// ======================== ПОДСВЕТКА СТРОКИ В ТАБЛИЦЕ ========================
+// podsvetka stroki
 
 function highlightOrderRow(orderId) {
   const rows = document.querySelectorAll("#ordersTable tbody tr");
@@ -873,7 +871,7 @@ function highlightOrderRow(orderId) {
   // снимаем выделение со всех строк
   rows.forEach(tr => tr.classList.remove("row-selected"));
 
-  // ищем строку с нужным data-order-id
+  // ищем строку
   const target = document.querySelector(
     `#ordersTable tbody tr[data-order-id="${orderId}"]`
   );
@@ -885,7 +883,7 @@ function highlightOrderRow(orderId) {
   }
 }
 
-/* ======================== МАРКЕРЫ НА КАРТЕ ======================== */
+// markeri
 
 function renderMarkers(orders) {
   if (!markersLayer || !window.ymaps) return;
@@ -993,7 +991,7 @@ function initSidebarResizer() {
   });
 }
 
-/* ======================== МАРШРУТ ПО ДОРОГЕ ======================== */
+// marshryt
 
 function drawYandexRoute(order) {
   if (!map || !window.ymaps) return;
@@ -1042,7 +1040,7 @@ function drawYandexRoute(order) {
     });
 }
 
-/* ======================== ГЕОКОДИНГ АДРЕСА ======================== */
+// geo
 
 function geocodeAddress(address) {
   if (!window.ymaps) {
@@ -1062,7 +1060,7 @@ function geocodeAddress(address) {
     });
 }
 
-/* ======================== ДОБАВЛЕНИЕ ЗАЯВКИ ======================== */
+// +zayvka
 
 async function onAddOrderSubmit(e) {
   e.preventDefault();
@@ -1150,7 +1148,7 @@ async function onAddOrderSubmit(e) {
   }
 }
 
-/* ======================== УДАЛЕНИЕ ЗАЯВКИ ======================== */
+// -zayvka
 
 async function deleteOrder(id) {
   if (!id) return;
@@ -1178,7 +1176,7 @@ async function deleteOrder(id) {
   }
 }
 
-/* ======================== РЕДАКТИРОВАНИЕ ЗАЯВКИ ======================== */
+// redak zayvka
 
 // Переменные для хранения экземпляров SuggestView для полей редактирования
 let editSuggestViewFrom = null;
@@ -1303,7 +1301,7 @@ async function onEditOrderSubmit(e) {
   }
 }
 
-/* ======================== ВЫГРУЗКА В CSV ======================== */
+// CSV
 
 function downloadCsv(orders) {
   if (!orders || !orders.length) {
@@ -1360,7 +1358,7 @@ function downloadCsv(orders) {
   URL.revokeObjectURL(url);
 }
 
-/* ======================== ПРОСТОЙ КАЛЕНДАРЬ ======================== */
+// kalendar
 
 let renderCalendarFn = null; // Глобальная функция для перерисовки календаря
 
@@ -1394,7 +1392,7 @@ function initCalendar() {
     tbody.innerHTML = "";
 
     // день недели первого числа (0–6, где 0 — понедельник)
-    let firstDay = current.getDay(); // 0=вс, 1=пн...
+    let firstDay = current.getDay(); 
     firstDay = (firstDay + 6) % 7;   // сдвиг, чтобы 0=пн
 
     const daysInMonth = new Date(year, month + 1, 0).getDate();
