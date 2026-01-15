@@ -6,7 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
 
-// если локально будешь использовать .env – это не мешает на Render
+
 try {
   require('dotenv').config();
 } catch (_) {}
@@ -14,14 +14,14 @@ try {
 const app = express();
 const PORT = process.env.PORT || 5050;
 
-// ------------ БАЗОВЫЕ MIDDLEWARE ------------
+//  БАЗОВЫЕ MIDDL
 app.use(cors());
 app.use(express.json());
 
-// статика: index.html, main.js, style.css и т.д.
+// статика
 app.use(express.static(__dirname));
 
-// ------------ ПОДКЛЮЧЕНИЕ К MONGODB ------------
+//  ПОДКЛЮЧЕНИЕ К MONGODB
 const mongoUri =
   process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/logistics_map';
 
@@ -32,7 +32,7 @@ mongoose
     console.error('❌ MongoDB connection error:', err);
   });
 
-// ------------ МОДЕЛЬ ЗАЯВКИ ------------
+// МОДЕЛЬ ЗАЯВКИ
 const orderSchema = new mongoose.Schema(
   {
     from: String,
@@ -46,9 +46,9 @@ const orderSchema = new mongoose.Schema(
     unloadLon: Number,
     norm: String,
     volume: String,
-    comment: String,          // <-- новое поле
-    loadingDate: Date,        // <-- дата загрузки для календаря
-    client: String,           // <-- клиент
+    comment: String,         
+    loadingDate: Date,        // дата загрузки для календаря
+    client: String,           // клиент
   },
   { timestamps: true }
 );
@@ -57,7 +57,7 @@ const orderSchema = new mongoose.Schema(
 
 const Order = mongoose.model('Order', orderSchema);
 
-// ------------ МОДЕЛЬ РАСПИСАНИЯ ЗАГРУЗКИ ------------
+// РАСПИСАНИЯ ЗАГРУЗКИ
 const scheduleItemSchema = new mongoose.Schema(
   {
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
@@ -77,7 +77,7 @@ scheduleItemSchema.index({ loadingDate: 1 });
 
 const ScheduleItem = mongoose.model('ScheduleItem', scheduleItemSchema);
 
-// ------------ МОДЕЛЬ АКТИВНОСТИ ------------
+// АКТИВНОСТИ
 const activitySchema = new mongoose.Schema(
   {
     type: { 
@@ -100,7 +100,7 @@ activitySchema.index({ createdAt: -1 });
 
 const Activity = mongoose.model('Activity', activitySchema);
 
-// ------------ МОДЕЛЬ ВОДИТЕЛЯ ------------
+// МОДЕЛЬ ВОДИТЕЛЯ
 const driverSchema = new mongoose.Schema(
   {
     address: { type: String, required: true },
@@ -113,7 +113,7 @@ const driverSchema = new mongoose.Schema(
 
 const Driver = mongoose.model('Driver', driverSchema);
 
-// ------------ TELEGRAM ИНТЕГРАЦИЯ ------------
+// TELEGRAM
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8588186081:AAEgiznswcPK0UIkEgBKTs-NY_wL1nfK6CI';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1003225004952';
@@ -165,26 +165,26 @@ async function sendToTelegram(message) {
 
     console.log('✅ Сообщение отправлено в Telegram');
   } catch (error) {
-    // Логируем ошибку, но не выбрасываем её дальше, чтобы не ломать основной процесс
+   
     console.error('❌ Ошибка отправки в Telegram (не критично):', error.message);
-    // НЕ выбрасываем ошибку, чтобы не прерывать сохранение данных
+    
   }
 }
 
-// ------------ ПРОСТАЯ АДМИН-АВТОРИЗАЦИЯ ------------
+// АДМИН-АВТОРИЗАЦИЯ
 
 
 const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || 'admin123').trim();
 
-// просто лог для проверки, что видит сервер
+// просто лог для проверки
 console.log('🔐 ADMIN_PASSWORD on server =', JSON.stringify(ADMIN_PASSWORD));
 
-// токен = sha256(пароля) — чтобы в браузере не светить сам пароль
+// токен
 function getAdminToken() {
   return crypto.createHash('sha256').update(ADMIN_PASSWORD).digest('hex');
 }
 
-// Вход: POST /api/login ИЛИ /api/admin/login  { password }
+// Вход
 app.post(['/api/login', '/api/admin/login'], (req, res) => {
   const password = (req.body && req.body.password
     ? String(req.body.password).trim()
@@ -202,7 +202,7 @@ app.post(['/api/login', '/api/admin/login'], (req, res) => {
   return res.json({ token });
 });
 
-// middleware: проверка, что запрос пришёл от админа
+// middleware
 function requireAdmin(req, res, next) {
   const authHeader =
     req.headers['authorization'] || req.headers['Authorization'] || '';
@@ -217,9 +217,9 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// ------------ API -------------
+//  API
 
-// GET /api/orders — доступен всем (и обычным пользователям тоже)
+// GET
 app.get('/api/orders', async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
@@ -230,7 +230,7 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// POST /api/orders — только админ
+
 app.post('/api/orders', requireAdmin, async (req, res) => {
   try {
     const order = new Order(req.body);
@@ -262,7 +262,7 @@ app.post('/api/orders', requireAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/orders/:id — только админ
+// только админ
 app.put('/api/orders/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -301,7 +301,7 @@ app.put('/api/orders/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/orders/:id — только админ
+// DELETE только админ
 app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -310,7 +310,7 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Заявка не найдена' });
     }
     
-    // Удаляем все связанные записи расписания (каскадное удаление)
+    //  удаление
     await ScheduleItem.deleteMany({ orderId: id });
     
     // Удаляем связанные записи активности
@@ -325,13 +325,12 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// ------------ API ДЛЯ РАСПИСАНИЯ ЗАГРУЗОК ------------
 
-// GET /api/schedule — получить все назначения (с заявками)
+
 app.get('/api/schedule', async (req, res) => {
   try {
     const schedule = await ScheduleItem.find().populate('orderId').sort({ loadingDate: 1 });
-    // Фильтруем записи, у которых заявка была удалена (orderId === null)
+    // Фильтруем записи
     const filteredSchedule = schedule.filter(item => item.orderId !== null);
     res.json(filteredSchedule);
   } catch (err) {
@@ -340,7 +339,7 @@ app.get('/api/schedule', async (req, res) => {
   }
 });
 
-// GET /api/schedule/date/:date — получить назначения на конкретную дату
+// получить назначения на конкретную дату
 app.get('/api/schedule/date/:date', async (req, res) => {
   try {
     const { date } = req.params;
@@ -353,7 +352,7 @@ app.get('/api/schedule/date/:date', async (req, res) => {
       loadingDate: { $gte: startDate, $lte: endDate }
     }).populate('orderId');
     
-    // Фильтруем записи, у которых заявка была удалена (orderId === null)
+    // Фильтруем записи
     const filteredSchedule = schedule.filter(item => item.orderId !== null);
     
     res.json(filteredSchedule);
@@ -363,7 +362,7 @@ app.get('/api/schedule/date/:date', async (req, res) => {
   }
 });
 
-// POST /api/schedule — создать новое назначение (только админ)
+// создать новое назначение (только админ)
 app.post('/api/schedule', requireAdmin, async (req, res) => {
   try {
     const scheduleItem = new ScheduleItem(req.body);
@@ -403,7 +402,7 @@ app.post('/api/schedule', requireAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/schedule/:id — обновить назначение
+
 // Обновление shippedTons доступно всем, остальные поля - только админу
 app.put('/api/schedule/:id', async (req, res) => {
   try {
@@ -413,7 +412,7 @@ app.put('/api/schedule/:id', async (req, res) => {
       return res.status(404).json({ message: 'Назначение не найдено' });
     }
     
-    // Проверяем, что пользователь пытается изменить только shippedTons и logistician
+   
     // Если пытается изменить другие поля - требуется авторизация админа
     const isOnlyShippingUpdate = Object.keys(req.body).every(key => 
       key === 'shippedTons' || key === 'logistician'
@@ -541,7 +540,7 @@ app.post('/api/drivers', requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/drivers/:id — удалить водителя (только админ)
+// удалить водителя (только админ)
 app.delete('/api/drivers/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -556,9 +555,8 @@ app.delete('/api/drivers/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// ------------ API ДЛЯ АКТИВНОСТИ ------------
 
-// GET /api/activities — получить последние записи активности
+// получить последние записи активности
 app.get('/api/activities', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
@@ -579,7 +577,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ------------ ЗАПУСК СЕРВЕРА ------------
+// ЗАПУСК СЕРВЕРА
 app.listen(PORT, () => {
-  console.log(`🚀 Server listening on port ${PORT}`);
+  console.log(` Server listening on port ${PORT}`);
 });
